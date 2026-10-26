@@ -9,23 +9,48 @@
 </head>
 <body>
 <div class="cab">
-  <div class="bar">
-    <div>
-      <div class="label"><span id="actName">Frozen Pond</span> · Round <b id="round">1</b></div>
-      <div><span class="score" id="score">0</span> <span class="quota">/ <span id="quota">1,500</span></span></div>
-      <div class="prog" id="prog"><i id="progFill"></i></div>
-    </div>
-    <div class="right">
-      <div class="coins" aria-label="Coins and upgrade tokens"><span class="coin"></span><span id="coins">0</span><span class="tokwrap" id="tokWrap" hidden><span class="token"></span><span id="tokens">0</span></span></div>
-      <div class="hand" id="hand" aria-label="Strikers this round"></div>
-    </div>
-  </div>
-  <div class="rows">
-    <div class="perks" id="perks"></div>
-    <div class="contracts" id="contracts" aria-label="Contracts this round"></div>
-  </div>
   <div class="stage" id="stage">
+    <div class="field">
     <canvas id="c" aria-label="Rink. Grab the striker in the launch zone and flick it upward to shoot. Swipe in a curve to add curl."></canvas>
+
+    <div class="hud">
+      <div class="pill scorebox">
+        <div><span class="score" id="score">0</span> <span class="quota">/ <span id="quota">1,500</span></span></div>
+        <div class="prog" id="prog"><i id="progFill"></i></div>
+      </div>
+      <div class="pill hand" id="hand" aria-label="Strikers this round"></div>
+      <div class="pill coins" aria-label="Coins and upgrade tokens"><span class="coin"></span><span id="coins">0</span><span class="tokwrap" id="tokWrap" hidden><span class="token"></span><span id="tokens">0</span></span></div>
+      <div class="hudbtns">
+        <button class="ghost pill" id="runBtn">Run<span class="badge" id="runBadge" hidden></span></button>
+        <button class="ghost pill" id="settingsBtn">Settings</button>
+      </div>
+    </div>
+    </div>
+
+    <div class="overlay" id="runOver" hidden>
+      <div class="card">
+        <h2><span id="actName">Frozen Pond</span> · Round <span id="round">1</span></h2>
+        <h3>Contracts</h3>
+        <div class="contracts" id="contracts" aria-label="Contracts this round"></div>
+        <h3>Perks</h3>
+        <div class="perks" id="perks"></div>
+        <button id="runClose">Close</button>
+      </div>
+    </div>
+
+    <div class="overlay" id="settingsOver" hidden>
+      <div class="card">
+        <h2>Settings</h2>
+        <div class="ctrl" id="devPower" hidden>
+          <label for="gain" class="label">Power</label>
+          <input type="range" id="gain" min="0.8" max="3" step="0.1" value="1.7">
+          <span id="gainOut" class="gv">1.7×</span>
+        </div>
+        <button class="ghost" id="hapt">Haptics</button>
+        <button class="ghost" id="reset">New run</button>
+        <button id="settingsClose">Close</button>
+      </div>
+    </div>
 
     <div class="info" id="info" hidden role="status"><strong id="infoTitle"></strong><span class="itag" id="infoTag"></span><p id="infoBody"></p><ul id="infoNums"></ul><small>Tap anywhere to close</small></div>
 
@@ -76,13 +101,6 @@
         <button id="again">New run</button>
       </div>
     </div>
-  </div>
-  <div class="ctrl">
-    <label for="gain" class="label">Power</label>
-    <input type="range" id="gain" min="0.8" max="3" step="0.1" value="1.7">
-    <span id="gainOut" class="gv">1.7×</span>
-    <button class="ghost" id="hapt">Haptics</button>
-    <button class="ghost" id="reset">New run</button>
   </div>
 </div>
 <script type="module" src="/src/main.ts"></script>

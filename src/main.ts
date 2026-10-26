@@ -21,6 +21,7 @@ import {
 } from "@/ui/hud";
 import { hideInfo, isInfoOpen, showInfo } from "@/ui/info";
 import { hideOverlays, setupKitPicker, showRunOver } from "@/ui/overlays";
+import { setupRunSheet } from "@/ui/runSheet";
 import { setupSettings } from "@/ui/settings";
 import { createShopView } from "@/ui/shop";
 
@@ -36,6 +37,7 @@ const seedForRun = () => fixedSeed ?? randomSeed();
 
 const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
 const settings = setupSettings();
+const runSheet = setupRunSheet(() => game);
 const shop = createShopView({
 	game: () => game,
 	buzz: settings.buzz,
@@ -53,7 +55,9 @@ function onGameEvent(event: GameEvent): void {
 		case "coins":
 			return renderCoins(game);
 		case "contracts":
-			return renderContracts(game);
+			renderContracts(game);
+			runSheet.refreshBadge();
+			return;
 		case "hand":
 			return renderHand(game);
 		case "perks":
@@ -66,6 +70,7 @@ function onGameEvent(event: GameEvent): void {
 			renderHand(game);
 			renderScore(game, false, reduceMotion);
 			renderContracts(game);
+			runSheet.resetForRound();
 			return;
 		case "shotsDone":
 			setTimeout(
@@ -134,7 +139,10 @@ cabinet?.addEventListener("keydown", (e) => {
 });
 $("info").addEventListener("click", hideInfo);
 $("again").addEventListener("click", newRun);
-$("reset").addEventListener("click", newRun);
+$("reset").addEventListener("click", () => {
+	settings.close();
+	newRun();
+});
 
 let carry = 0,
 	last = performance.now();

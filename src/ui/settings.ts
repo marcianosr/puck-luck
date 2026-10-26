@@ -5,15 +5,18 @@ import { $, byId } from './dom';
 const GAIN_KEY = 'chainSmashGain';
 const HAPTICS_KEY = 'chainSmashHaptics';
 const DEFAULT_GAIN = 1.7;
+/** `?dev` unlocks the power slider; players always shoot at the tuned default. */
+const IS_DEV = new URLSearchParams(location.search).has('dev');
 
 export interface Settings {
   gain: () => number;
   buzz: (pattern: number | number[]) => void;
+  close: () => void;
 }
 
 export function setupSettings(): Settings {
   const slider = byId('gain', HTMLInputElement), out = $('gainOut'), hapticsBtn = $('hapt');
-  let gain = clamp(load(GAIN_KEY, isNumber, DEFAULT_GAIN), Number(slider.min), Number(slider.max));
+  let gain = IS_DEV ? clamp(load(GAIN_KEY, isNumber, DEFAULT_GAIN), Number(slider.min), Number(slider.max)) : DEFAULT_GAIN;
   let haptics = load(HAPTICS_KEY, isBoolean, true);
 
   const showGain = () => {
@@ -33,6 +36,13 @@ export function setupSettings(): Settings {
     }
   };
 
+  const overlay = $('settingsOver');
+  const close = () => (overlay.hidden = true);
+  $('settingsBtn').addEventListener('click', () => (overlay.hidden = false));
+  $('settingsClose').addEventListener('click', close);
+  overlay.addEventListener('click', e => e.target === overlay && close());
+
+  $('devPower').hidden = !IS_DEV;
   slider.addEventListener('input', () => {
     gain = Number(slider.value);
     showGain();
@@ -46,5 +56,5 @@ export function setupSettings(): Settings {
   });
   showGain();
   showHaptics();
-  return { gain: () => gain, buzz };
+  return { gain: () => gain, buzz, close };
 }

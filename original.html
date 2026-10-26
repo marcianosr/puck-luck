@@ -1,0 +1,1349 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Chain Smash Rink</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lilita+One&family=DM+Mono:wght@500&family=Nunito:wght@600;800&display=swap">
+<style>
+/* Layout: one-screen arcade cabinet — run bar, perk + contract rows, rink canvas, control bar; kit picker, shop and results as overlays. Deliberately single dark theme (night cabinet). */
+:root {
+  --night: #0e1a2b;
+  --panel: #16273d;
+  --panel-2: #1e3350;
+  --frost: #eef6fb;
+  --muted: #8aa4bd;
+  --striker: #23b59a;
+  --t0: #ef6b4d;
+  --t1: #9b5de5;
+  --t2: #a3c93a;
+  --gold: #ffc94a;
+  --gold-deep: #b8892a;
+  --rare: #6aa8ff;
+  --paddle: #3b6fd8;
+  --heavy: #4a5a70;
+  --done: #23b59a;
+  --pond-ice: #dcecf5; --pond-line: #9cc3da;
+  --arena-ice: #eef1f4; --arena-line: #c3ccd8; --arena-red: #e0574d; --arena-blue: #5b8be0;
+  --cave-ice: #1d3350; --cave-line: #4fd1e0;
+  --arcade-floor: #1a1035; --arcade-pink: #ff4fd8; --arcade-cyan: #3ee8ff;
+  --wood: #d9a066; --wood-line: #b0763f; --sand: #f0dba8;
+  --lava-floor: #2a1816; --lava: #ff7a3d; --lava-hot: #ffd166;
+  --lab-floor: #0f2230; --lab-grid: #3fd0a8;
+  --slush: #b9c7cf;
+  --display: "Lilita One", "Arial Rounded MT Bold", system-ui, sans-serif;
+  --body: "Nunito", system-ui, sans-serif;
+  --mono: "DM Mono", ui-monospace, Menlo, monospace;
+  color-scheme: dark;
+}
+html, body { height: 100%; }
+body {
+  background: var(--night); color: var(--frost); font-family: var(--body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: flex; justify-content: center; overflow: hidden;
+  -webkit-user-select: none; user-select: none;
+}
+.cab { width: 100%; max-width: 480px; height: 100%; display: flex; flex-direction: column; gap: 6px; padding-block: 10px; box-sizing: border-box; }
+.bar { display: grid; grid-template-columns: 1fr auto; align-items: end; gap: 10px; }
+.label { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); font-weight: 800; }
+.label b { color: var(--gold); }
+.score { font-family: var(--mono); font-size: 26px; line-height: 1; font-variant-numeric: tabular-nums; display: inline-block; }
+.score.bump { animation: bump .18s ease-out; }
+@keyframes bump { 50% { transform: scale(1.16); color: var(--gold); } }
+.quota { font-family: var(--mono); font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.prog { height: 5px; border-radius: 3px; background: var(--panel); margin-top: 5px; overflow: hidden; }
+.prog i { display: block; height: 100%; width: 0; background: var(--gold); transition: width .2s; }
+.prog.full i { background: var(--striker); }
+.right { display: flex; flex-direction: column; gap: 6px; align-items: flex-end; }
+.coins { font-family: var(--mono); font-size: 18px; font-variant-numeric: tabular-nums; display: flex; align-items: center; gap: 6px; }
+.coin { width: 12px; height: 12px; border-radius: 50%; background: var(--gold); box-shadow: inset 0 0 0 2px var(--gold-deep); display: inline-block; flex: none; }
+.token { width: 10px; height: 10px; background: var(--rare); transform: rotate(45deg); display: inline-block; flex: none; border-radius: 2px; }
+.tokwrap { display: inline-flex; align-items: center; gap: 6px; margin-left: 6px; }
+.hand { display: flex; gap: 4px; justify-content: flex-end; flex-wrap: wrap; max-width: 160px; }
+.sd { width: 14px; height: 14px; border-radius: 50%; background: var(--striker); box-shadow: inset 0 -3px 0 rgba(0,0,0,.22); transition: opacity .2s, transform .2s; flex: none; box-sizing: border-box; position: relative; display: inline-block; }
+.sd.up::after { content: ""; position: absolute; right: -3px; top: -3px; width: 7px; height: 7px; border-radius: 50%; background: var(--gold); box-shadow: 0 0 0 1.5px var(--night); }
+.sd.used { opacity: .16; transform: scale(.78); }
+.sd.next { outline: 2px solid var(--gold); outline-offset: 1px; }
+.sd[data-t="heavy"] { background: var(--heavy); }
+.sd[data-t="splitter"] { background: linear-gradient(135deg, var(--striker) 44%, var(--night) 44% 56%, var(--striker) 56%); }
+.sd[data-t="magnet"] { background: radial-gradient(circle, var(--striker) 30%, var(--t0) 32% 56%, var(--striker) 58%); }
+.sd[data-t="ghost"] { opacity: .55; box-shadow: inset 0 0 0 2px var(--frost); }
+.sd[data-t="bomb"] { background: radial-gradient(circle, var(--night) 40%, var(--striker) 42%); }
+.sd[data-t="comet"] { box-shadow: inset 0 0 0 3px var(--gold); }
+.sd[data-t="prism"] { background: conic-gradient(var(--t0), var(--gold), var(--t2), var(--rare), var(--t1), var(--t0)); }
+.rows { display: flex; flex-direction: column; gap: 5px; }
+.perks, .contracts { display: flex; gap: 5px; flex-wrap: wrap; }
+.chip { font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: 999px; background: var(--panel); color: var(--frost); box-shadow: inset 0 0 0 1.5px var(--muted); }
+.chip.rare { box-shadow: inset 0 0 0 1.5px var(--rare); }
+.chip.legendary { box-shadow: inset 0 0 0 1.5px var(--gold); color: var(--gold); }
+.chip.weather { box-shadow: inset 0 0 0 1.5px var(--t0); background: var(--panel-2); border-radius: 6px; }
+.chip.none { background: transparent; color: var(--muted); box-shadow: none; padding-left: 0; font-weight: 600; }
+.ct { font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: 6px; background: var(--panel); color: var(--frost); display: inline-flex; align-items: center; gap: 5px; font-variant-numeric: tabular-nums; }
+.ct .pg { font-family: var(--mono); font-weight: 500; color: var(--muted); }
+.ct .coin { transform: scale(.8); }
+.ct .token { transform: rotate(45deg) scale(.8); }
+.ct.done { background: var(--done); color: var(--night); }
+.ct.done .pg { color: var(--night); }
+.stage { flex: 1; min-height: 0; position: relative; display: flex; justify-content: center; align-items: center; }
+canvas { display: block; border-radius: 18px; touch-action: none; box-shadow: 0 0 0 4px var(--panel), 0 18px 40px rgba(0,0,0,.45); cursor: crosshair; max-width: 100%; }
+.ctrl { display: flex; align-items: center; gap: 8px; }
+.ctrl label { flex: none; }
+.ctrl input { flex: 1; min-width: 0; accent-color: var(--gold); }
+.gv { font-family: var(--mono); font-variant-numeric: tabular-nums; min-width: 3.5ch; text-align: right; font-size: 13px; }
+button { font-family: var(--display); font-size: 16px; letter-spacing: .03em; border: 0; border-radius: 999px; padding: 9px 18px; background: var(--gold); color: var(--night); cursor: pointer; box-shadow: 0 3px 0 var(--gold-deep); }
+button:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--gold-deep); }
+button:focus-visible { outline: 3px solid var(--frost); outline-offset: 2px; }
+button:disabled { opacity: .4; cursor: not-allowed; transform: none; }
+button.ghost { background: transparent; color: var(--frost); box-shadow: inset 0 0 0 2px var(--panel-2); white-space: nowrap; font-size: 13px; padding: 6px 11px; }
+button.ghost.on { box-shadow: inset 0 0 0 2px var(--striker); }
+.overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: 8px; background: rgba(14,26,43,.5); }
+.card { background: var(--panel); border-radius: 18px; padding: 18px; display: flex; flex-direction: column; gap: 10px; width: min(360px, 100%); max-height: 100%; overflow-y: auto; box-sizing: border-box; box-shadow: 0 20px 50px rgba(0,0,0,.5); }
+.card h2 { margin: 0; font-family: var(--display); font-weight: 400; font-size: 26px; color: var(--gold); text-wrap: balance; text-align: center; }
+.card h3 { margin: 4px 0 0; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); font-weight: 800; }
+.card p { margin: 0; color: var(--muted); font-size: 13px; text-align: center; }
+.card .big { font-family: var(--mono); font-size: 34px; font-variant-numeric: tabular-nums; text-align: center; }
+.wallet { display: flex; justify-content: center; align-items: center; gap: 8px; font-family: var(--mono); font-size: 26px; }
+.wallet .coin { width: 18px; height: 18px; }
+.wallet .token { width: 13px; height: 13px; margin-left: 10px; }
+.stats { display: grid; grid-template-columns: 1fr auto; gap: 4px 16px; font-size: 14px; }
+.stats span:nth-child(even) { font-family: var(--mono); text-align: right; }
+.offers { display: flex; flex-direction: column; gap: 6px; }
+.offer { text-align: left; background: var(--night); color: var(--frost); box-shadow: inset 0 0 0 2px var(--muted); border-radius: 12px; padding: 9px 12px; display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; align-items: center; font-family: var(--body); letter-spacing: 0; }
+.offer.rare { box-shadow: inset 0 0 0 2px var(--rare); }
+.offer.legendary { box-shadow: inset 0 0 0 2px var(--gold); }
+.offer strong { font-family: var(--display); font-weight: 400; font-size: 16px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.offer .tag { font-size: 10px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.offer.rare .tag { color: var(--rare); }
+.offer.legendary .tag, .offer.legendary strong { color: var(--gold); }
+.offer .desc { font-size: 12.5px; color: var(--frost); grid-column: 1; }
+.offer .price { grid-column: 2; grid-row: 1 / span 3; font-family: var(--mono); font-size: 16px; display: flex; align-items: center; gap: 5px; }
+.offer.sold { opacity: .35; }
+.offer.sold .price { font-family: var(--body); font-size: 12px; font-weight: 800; }
+.offer .dots { display: inline-flex; gap: 3px; }
+.svc { display: flex; gap: 6px; flex-wrap: wrap; }
+.svc button { flex: 1 1 30%; }
+.deck { display: flex; flex-wrap: wrap; gap: 5px; }
+.dchip { display: inline-flex; align-items: center; gap: 6px; font-family: var(--body); font-size: 12px; font-weight: 800; letter-spacing: 0; padding: 4px 9px 4px 5px; border-radius: 999px; background: var(--night); color: var(--frost); box-shadow: none; text-align: left; }
+.deck.removing .dchip { box-shadow: inset 0 0 0 2px var(--t0); }
+.deck.upgrading .dchip { box-shadow: inset 0 0 0 2px var(--gold); border-radius: 12px; }
+.deck.upgrading .dchip:disabled { box-shadow: none; }
+.earn { display: flex; flex-wrap: wrap; gap: 4px 10px; justify-content: center; font-size: 12px; color: var(--muted); }
+.earn b { color: var(--gold); font-family: var(--mono); font-weight: 500; }
+.tapk { cursor: pointer; }
+.tapk:focus-visible { outline: 2px solid var(--frost); outline-offset: 2px; }
+.info { position: absolute; left: 8px; right: 8px; top: 8px; z-index: 5; background: var(--panel); border-radius: 14px; padding: 12px 14px; box-shadow: 0 12px 30px rgba(0,0,0,.5), inset 0 0 0 2px var(--panel-2); display: flex; flex-direction: column; gap: 4px; }
+.info strong { font-family: var(--display); font-weight: 400; font-size: 19px; color: var(--gold); }
+.info .itag { font-size: 10px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.info p { margin: 0; font-size: 13px; }
+.info ul { margin: 2px 0 0; padding-left: 16px; font-size: 12.5px; color: var(--muted); display: flex; flex-direction: column; gap: 2px; }
+.info ul b { color: var(--frost); font-family: var(--mono); font-weight: 500; }
+.info small { color: var(--muted); font-size: 11px; }
+@media (prefers-reduced-motion: reduce) { .sd, .prog i { transition: none; } .score.bump { animation: none; } }
+</style>
+
+<div class="cab">
+  <div class="bar">
+    <div>
+      <div class="label"><span id="actName">Frozen Pond</span> · Round <b id="round">1</b></div>
+      <div><span class="score" id="score">0</span> <span class="quota">/ <span id="quota">1,500</span></span></div>
+      <div class="prog" id="prog"><i id="progFill"></i></div>
+    </div>
+    <div class="right">
+      <div class="coins" aria-label="Coins and upgrade tokens"><span class="coin"></span><span id="coins">0</span><span class="tokwrap" id="tokWrap" hidden><span class="token"></span><span id="tokens">0</span></span></div>
+      <div class="hand" id="hand" aria-label="Strikers this round"></div>
+    </div>
+  </div>
+  <div class="rows">
+    <div class="perks" id="perks"></div>
+    <div class="contracts" id="contracts" aria-label="Contracts this round"></div>
+  </div>
+  <div class="stage" id="stage">
+    <canvas id="c" aria-label="Rink. Grab the striker in the launch zone and flick it upward to shoot. Swipe in a curve to add curl."></canvas>
+
+    <div class="info" id="info" hidden role="status"><strong id="infoTitle"></strong><span class="itag" id="infoTag"></span><p id="infoBody"></p><ul id="infoNums"></ul><small>Tap anywhere to close</small></div>
+
+    <div class="overlay" id="kitOver" hidden>
+      <div class="card">
+        <h2>Pick a starter kit</h2>
+        <p>Your kit sets your deck, coins and any starting perk. Each round you draw 3 strikers from your deck.</p>
+        <p><b style="color:var(--frost)">New:</b> while a shot rolls, hold your finger near it to <b style="color:var(--frost)">sweep</b> (it glides further and curls less), tap once to use the striker's <b style="color:var(--frost)">ability</b>, or swipe once to <b style="color:var(--frost)">nudge</b> it. Release a flick in the gold band of the power meter for a <b style="color:var(--frost)">Perfect</b> bonus. Tap any chip or striker dot for details.</p>
+        <div class="offers" id="kitList"></div>
+      </div>
+    </div>
+
+    <div class="overlay" id="shopOver" hidden>
+      <div class="card">
+        <h2 id="shopTitle">Round cleared</h2>
+        <div class="earn" id="earn"></div>
+        <div class="wallet"><span class="coin"></span><span id="wallet">0</span><span class="token"></span><span id="walletTok">0</span></div>
+        <h3>Strikers for your deck</h3>
+        <div class="offers" id="offStrikers"></div>
+        <h3>Perks</h3>
+        <div class="offers" id="offPerks"></div>
+        <div class="svc">
+          <button class="ghost" id="reroll">Reroll</button>
+          <button class="ghost" id="upgradeBtn">Upgrade</button>
+          <button class="ghost" id="removeBtn">Remove</button>
+        </div>
+        <h3 id="deckTitle">Your deck</h3>
+        <div class="deck" id="deckList"></div>
+        <p id="nextInfo"></p>
+        <button id="nextRound">Next round</button>
+      </div>
+    </div>
+
+    <div class="overlay" id="over" hidden>
+      <div class="card">
+        <h2>Run over</h2>
+        <p id="overSub">Missed the quota.</p>
+        <div class="big" id="finalScore">0</div>
+        <div class="stats">
+          <span>Kit</span><span id="stKit">—</span>
+          <span>Rounds cleared</span><span id="stRounds">0</span>
+          <span>Contracts done</span><span id="stContracts">0</span>
+          <span>Longest chain</span><span id="stChain">0</span>
+          <span>Striker clashes</span><span id="stClash">0</span>
+          <span>Best shot</span><span id="stShot">0</span>
+          <span>Best run</span><span id="stBest">—</span>
+        </div>
+        <button id="again">New run</button>
+      </div>
+    </div>
+  </div>
+  <div class="ctrl">
+    <label for="gain" class="label">Power</label>
+    <input type="range" id="gain" min="0.8" max="3" step="0.1" value="1.7">
+    <span id="gainOut" class="gv">1.7×</span>
+    <button class="ghost" id="hapt">Haptics</button>
+    <button class="ghost" id="reset">New run</button>
+  </div>
+</div>
+
+<script>
+(() => {
+  const W = 400, H = 680, R = 15, LAUNCH_Y = H - 60, ZONE_TOP = H - 150;
+  const HAND = 3, MAXV = 22, POCKET_R = 18, BUMPER_R = 14, WELL_R = 140;
+  const cv = document.getElementById('c'), ctx = cv.getContext('2d');
+  const fogCv = document.createElement('canvas'); fogCv.width = W; fogCv.height = H; const fctx = fogCv.getContext('2d');
+  const stage = document.getElementById('stage');
+  const $ = id => document.getElementById(id);
+  const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  const T = n => css('--' + n);
+  const C = { striker: T('striker'), gold: T('gold'), night: T('night'), paddle: T('paddle'), frost: T('frost'), heavy: T('heavy'),
+              tc: [T('t0'), T('t1'), T('t2')], rare: T('rare'), slush: T('slush'), sand: T('sand'), lava: T('lava'), lavaHot: T('lava-hot'),
+              pink: T('arcade-pink'), red: T('arena-red'), blue: T('arena-blue') };
+  const DARK_SH = 'rgba(0,0,0,.4)', LIGHT_SH = 'rgba(14,26,43,.18)';
+  const THEMES = {
+    pond:      { name: 'Frozen Pond',      floor: T('pond-ice'),     line: T('pond-line'),   ink: C.night, shadow: LIGHT_SH, fr: .99,  wall: .9,  pockets: 1, bumpers: 0, patches: 0, wells: 0, decor: 'pond',  icy: true },
+    arena:     { name: 'Hockey Arena',     floor: T('arena-ice'),    line: T('arena-line'),  ink: C.night, shadow: LIGHT_SH, fr: .99,  wall: .9,  pockets: 2, bumpers: 2, patches: 0, wells: 0, decor: 'arena', icy: true, indoor: true },
+    cave:      { name: 'Glow Cave',        floor: T('cave-ice'),     line: T('cave-line'),   ink: C.frost, shadow: DARK_SH,  fr: .99,  wall: .9,  pockets: 2, bumpers: 2, patches: 2, wells: 0, decor: 'cave',  icy: true },
+    arcade:    { name: 'Neon Arcade',      floor: T('arcade-floor'), line: T('arcade-cyan'), ink: C.frost, shadow: DARK_SH,  fr: .995, wall: 1.0, pockets: 2, bumpers: 4, patches: 0, wells: 0, decor: 'arcade', indoor: true, pocketStyle: 'goal' },
+    boardwalk: { name: 'Sunset Boardwalk', floor: T('wood'),         line: T('wood-line'),   ink: C.night, shadow: LIGHT_SH, fr: .985, wall: .8,  pockets: 2, bumpers: 0, patches: 2, wells: 0, decor: 'boards', patch: 'SAND', pocketStyle: 'knot' },
+    lava:      { name: 'Lava Forge',       floor: T('lava-floor'),   line: T('lava'),        ink: C.frost, shadow: DARK_SH,  fr: .99,  wall: .9,  pockets: 2, bumpers: 1, patches: 0, wells: 0, decor: 'lava', indoor: true, pocketStyle: 'lava', pocketR: 24 },
+    lab:       { name: 'Zero-G Lab',       floor: T('lab-floor'),    line: T('lab-grid'),    ink: C.frost, shadow: DARK_SH,  fr: .996, wall: 1.0, pockets: 1, bumpers: 0, patches: 0, wells: 2, decor: 'lab', indoor: true },
+  };
+  const LATER_THEMES = ['arena', 'cave', 'arcade', 'boardwalk', 'lava', 'lab'];
+  const WEATHER = {
+    snow:     { name: 'Snowfall', desc: 'Ice gets stickier after every shot.', ok: t => t.icy && !t.indoor },
+    thaw:     { name: 'Thaw', desc: 'Slush patches grow after every shot.', ok: t => t.icy || t.patch === 'SAND',
+                nameFor: t => t.patch === 'SAND' ? 'Drifting Sand' : 'Thaw', descFor: t => t.patch === 'SAND' ? 'Sand patches grow after every shot.' : 'Slush patches grow after every shot.' },
+    wind:     { name: 'Gusts', desc: 'A steady wind pushes moving discs.', ok: () => true,
+                nameFor: t => t.indoor ? 'Air Vents' : 'Gusts', descFor: t => t.indoor ? 'Vents push moving discs one way.' : 'A steady wind pushes moving discs.' },
+    blizzard: { name: 'Blizzard', desc: 'Wind changes direction after every shot.', ok: t => !t.indoor },
+    fog:      { name: 'Fog', desc: 'Targets stay hidden until a striker gets close.', ok: () => true, nameFor: t => t.decor === 'lava' ? 'Smoke' : 'Fog' },
+  };
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const fmt = n => Math.round(n).toLocaleString('en');
+  const rnd = (a, b) => a + Math.random() * (b - a);
+  const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+  const shuffle = arr => arr.map(v => [Math.random(), v]).sort((a, b) => a[0] - b[0]).map(x => x[1]);
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const store = { get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch { return d; } },
+                  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} } };
+
+  // ---------- settings ----------
+  let gain = +store.get('chainSmashGain', 1.7) || 1.7;
+  const slider = $('gain'), gainOut = $('gainOut');
+  const showGain = () => { slider.value = gain; gainOut.textContent = gain.toFixed(1) + '×'; };
+  showGain();
+  slider.addEventListener('input', () => { gain = +slider.value; showGain(); store.set('chainSmashGain', gain); });
+  let haptics = store.get('chainSmashHaptics', true);
+  const showHapt = () => { $('hapt').classList.toggle('on', haptics); $('hapt').textContent = haptics ? 'Haptics on' : 'Haptics off'; };
+  showHapt();
+  $('hapt').addEventListener('click', () => { haptics = !haptics; store.set('chainSmashHaptics', haptics); showHapt(); buzz(15); });
+  function buzz(p) { if (!haptics || !navigator.vibrate) return; try { navigator.vibrate(p); } catch {} }
+
+  // ---------- strikers ----------
+  const STRIKERS = {
+    basic:    { name: 'Basic',    rarity: 'common',    desc: 'A plain striker.', up: 'Hook', upDesc: 'Curl bends 80% harder.' },
+    heavy:    { name: 'Heavy',    rarity: 'common',    desc: '2.5× mass. Plows through packs.', up: 'Wrecker', upDesc: '3.5× mass, shatters armor in one hit.' },
+    splitter: { name: 'Splitter', rarity: 'rare',      desc: 'Breaks into two shards on its first hit.', up: 'Trident', upDesc: 'Breaks into three shards.' },
+    magnet:   { name: 'Magnet',   rarity: 'rare',      desc: 'Pulls nearby targets in while it slides.', up: 'Tractor', upDesc: 'Pulls from further, and harder.' },
+    ghost:    { name: 'Ghost',    rarity: 'rare',      desc: 'Phases through the first 2 targets it touches, scoring both.', up: 'Phantom', upDesc: 'Phases through 4 targets.' },
+    bomb:     { name: 'Bomb',     rarity: 'rare',      desc: 'Explodes when it slows down, blasting everything nearby.', up: 'Big Bomb', upDesc: 'Bigger blast, worth 150.' },
+    comet:    { name: 'Comet',    rarity: 'legendary', desc: 'Every hit during its shot is worth ×2.', up: 'Supernova', upDesc: 'Every hit of its shot is worth ×3.' },
+    prism:    { name: 'Prism',    rarity: 'legendary', desc: 'Every 5th hit of its shot counts as a ×10 clash.', up: 'Spectrum', upDesc: 'Every 4th hit counts as a clash.' },
+  };
+  // tap ability while the striker rolls
+  const ABILITY = { basic: ['Brake', 'Cuts its speed by 60%.'], heavy: ['Anchor', 'Stops dead on the spot.'], splitter: ['Split', 'Splits right now instead of on its first hit.'],
+                    magnet: ['Pulse', 'One strong pull on every target nearby.'], ghost: ['Brake', 'Cuts its speed by 60%.'], bomb: ['Detonate', 'Explodes right now.'],
+                    comet: ['Brake', 'Cuts its speed by 60%.'], prism: ['Brake', 'Cuts its speed by 60%.'], shard: ['Brake', 'Cuts its speed by 60%.'] };
+  const baseOf = t => t.replace('+', ''), isUp = t => t.endsWith('+');
+  const sName = t => STRIKERS[baseOf(t)] ? (isUp(t) ? STRIKERS[baseOf(t)].up : STRIKERS[baseOf(t)].name) : 'Shard';
+  // ---------- perks ----------
+  const PERKS = [
+    { id: 'boards',  name: 'Live Boards',    rarity: 'common',    desc: 'Wall bounces count as chain hits.' },
+    { id: 'hot',     name: 'Hot Start',      rarity: 'common',    desc: 'Each shot starts at a 2-chain.' },
+    { id: 'slick',   name: 'Slick Floor',    rarity: 'common',    desc: 'Everything glides further.' },
+    { id: 'crowd',   name: 'Packed Rink',    rarity: 'common',    desc: '+3 extra targets each round.' },
+    { id: 'piggy',   name: 'Piggy Bank',     rarity: 'common',    desc: '+2 coins after every round.' },
+    { id: 'wide',    name: 'Wide Strikers',  rarity: 'common',    desc: 'All strikers are 25% bigger.' },
+    { id: 'clerk',   name: 'Fine Print',     rarity: 'common',    desc: 'Contracts pay +2 coins each.' },
+    { id: 'fever',   name: 'Clash Fever',    rarity: 'rare',      desc: 'Clashes pay ×15 instead of ×10.' , nums: ['Clash <b>×15</b> (normally ×10)'] },
+    { id: 'cap',     name: 'Long Chains',    rarity: 'rare',      desc: 'Hit value cap rises from 240 to 400.' , nums: ['Max hit value <b>400</b> (normally 240)'] },
+    { id: 'gold',    name: 'Gold Disc',      rarity: 'rare',      desc: 'One target each round is gold. Hits on it pay ×3.' },
+    { id: 'curl',    name: 'Curl Master',    rarity: 'rare',      desc: 'Spin bends 70% harder. Curl Shots pay ×2.' , nums: ['Bend <b>×1.7</b>', 'Curl Shot <b>×2</b> (normally ×1.5)'] },
+    { id: 'carry',   name: 'Overtime',       rarity: 'rare',      desc: 'Score above the quota carries into the next round.' },
+    { id: 'hands',   name: 'Big Hands',      rarity: 'rare',      desc: 'Draw 1 extra striker each round.' },
+    { id: 'banker',  name: 'Bank Master',    rarity: 'rare',      desc: 'Bank Shots pay ×3 instead of ×2.' , nums: ['Bank Shot <b>×3</b> (normally ×2)'] },
+    { id: 'hustler', name: 'Pocket Hustler', rarity: 'rare',      desc: 'Sinking a target pays 500 and 2 coins.' , nums: ['Sink: <b>500</b> points and <b>2</b> coins (normally 200 and 1)'] },
+    { id: 'storm',   name: 'Storm Chaser',   rarity: 'rare',      desc: 'Weather rounds pay ×1.5 on every hit.' , nums: ['Every hit <b>×1.5</b> in weather rounds'] },
+    { id: 'reactor', name: 'Chain Reactor',  rarity: 'legendary', desc: 'Every hit after a 10-chain is worth ×2.' , nums: ['Hit 11 and up: <b>×2</b>'] },
+    { id: 'midas',   name: 'Midas',          rarity: 'legendary', desc: '3 gold targets every round.' },
+    { id: 'sweeper', name: 'Pro Sweeper',    rarity: 'common',    desc: 'Sweep lasts twice as long.', nums: ['Sweep time: <b>3.0 s</b> per shot (normally 1.5 s)'] },
+    { id: 'sharp',   name: 'Sharpshooter',   rarity: 'rare',      desc: 'Perfect releases make every hit of that shot ×1.5.', nums: ['Perfect band: <b>70–85%</b> power', 'Every hit of a Perfect shot <b>×1.5</b> (normally only the first)'] },
+    { id: 'tactician', name: 'Tactician',    rarity: 'rare',      desc: 'Strikers can use their tap ability twice per shot.' },
+    { id: 'wind',    name: 'Second Wind',    rarity: 'legendary', desc: 'Miss the quota? Get one bonus striker, once per round.' },
+    { id: 'late',      name: 'Late Break',    rarity: 'rare',      group: 'curl', desc: 'Curl style. Shots run straight, then break hard as they slow.' , nums: ['Bend: <b>0.2×</b> at full speed, up to <b>3×</b> as it slows'] },
+    { id: 'snake',     name: 'Snake Spin',    rarity: 'rare',      group: 'curl', desc: 'Curl style. Spin swings side to side in an S-curve.' , nums: ['Bend swings between <b>−1.9×</b> and <b>+1.9×</b> about 3× a second'] },
+    { id: 'ricochet',  name: 'Ricochet Spin', rarity: 'rare',      group: 'curl', desc: 'Curl style. Wall bounces flip your spin and make it stronger.' , nums: ['Each wall bounce: spin <b>×1.4</b> and flipped, up to <b>150%</b>'] },
+    { id: 'boomerang', name: 'Boomerang',     rarity: 'legendary', group: 'curl', desc: 'Curl style. Spin grows instead of fading, so shots hook back.' , nums: ['Spin grows <b>0.4%</b> per frame instead of fading, up to <b>160%</b>'] },
+  ];
+  const PRICE = { striker: { common: 3, rare: 5, legendary: 9 }, perk: { common: 4, rare: 6, legendary: 10 } };
+  const UPGRADE_COST = 5, REMOVE_COST = 3;
+  const P = id => (RUN.perks[id] || 0);
+  const perkById = id => PERKS.find(p => p.id === id);
+
+  // ---------- starter kits ----------
+  const KITS = [
+    { id: 'classic',   name: 'Classic',    desc: 'Balanced. 5 Basic, 1 Heavy, 4 coins.', deck: ['basic', 'basic', 'basic', 'basic', 'basic', 'heavy'], coins: 4 },
+    { id: 'bruiser',   name: 'Bruiser',    desc: '3 Basic, 2 Heavy and a Wrecker that smashes armor. 3 coins.', deck: ['basic', 'basic', 'basic', 'heavy', 'heavy', 'heavy+'], coins: 3 },
+    { id: 'trickster', name: 'Trickster',  desc: '4 Hooks and a Ghost, with the Late Break curl style. 2 coins.', deck: ['basic+', 'basic+', 'basic+', 'basic+', 'ghost'], coins: 2, perks: ['late'] },
+    { id: 'demo',      name: 'Demolition', desc: '4 Basic and 2 Bombs. 2 coins.', deck: ['basic', 'basic', 'basic', 'basic', 'bomb', 'bomb'], coins: 2 },
+    { id: 'gambler',   name: 'Gambler',    desc: '6 Basic, 12 coins and Piggy Bank, but every quota is 20% higher.', deck: ['basic', 'basic', 'basic', 'basic', 'basic', 'basic'], coins: 12, perks: ['piggy'], quotaMul: 1.2 },
+  ];
+
+  // ---------- formations ----------
+  const BW = 360, CX = BW / 2, CY = 200, G = R * 2 + 6;
+  const spreadPt = p => ({ x: W / 2 + (p.x - CX) * (W / BW) * 1.05, y: 20 + p.y * (ZONE_TOP - 90) / 330 });
+  const FORMATIONS = {
+    'Scatter': () => scatter([], 9),
+    'Diamond': () => { const o = [], g = G + 10; [1, 2, 3, 2, 1].forEach((n, r) => { for (let i = 0; i < n; i++) o.push({ x: CX + (i - (n - 1) / 2) * g, y: 100 + r * g }); }); return o; },
+    'Ring': () => Array.from({ length: 8 }, (_, i) => { const a = i / 8 * Math.PI * 2 + Math.PI / 8; return { x: CX + Math.cos(a) * 100, y: CY + Math.sin(a) * 100 }; }).concat([{ x: CX, y: CY }]),
+    'Rows': () => { const o = []; [[3, 110], [2, 185], [3, 260]].forEach(([n, y]) => { for (let i = 0; i < n; i++) o.push({ x: CX + (i - (n - 1) / 2) * (G + 50), y }); }); return o; },
+    'Twin Packs': () => { const o = [], pack = (cx, cy) => [[0, 0], [-1, 1], [1, 1], [0, 2]].forEach(([i, j]) => o.push({ x: cx + i * (G / 2 + 6), y: cy + j * G })); pack(BW * .27, 100); pack(BW * .73, 200); return o; },
+    'Arrow': () => { const g = G + 8, o = [{ x: CX, y: 80 }]; for (let k = 1; k <= 3; k++) o.push({ x: CX - k * g * .75, y: 80 + k * g * .85 }, { x: CX + k * g * .75, y: 80 + k * g * .85 }); for (let k = 1; k <= 2; k++) o.push({ x: CX, y: 80 + k * g * 1.1 }); return o; },
+    'Corners': () => { const o = []; [[75, 100], [BW - 75, 100], [75, 300], [BW - 75, 300]].forEach(([cx, cy]) => [[-G / 2 - 3, 0], [G / 2 + 3, 0]].forEach(([dx, dy]) => o.push({ x: cx + dx, y: cy + dy }))); return o; },
+  };
+  function scatter(out, n, avoid = []) {
+    let tries = 0, added = 0;
+    while (added < n && tries++ < 5000) {
+      const x = rnd(R + 14, W - R - 14), y = rnd(60, ZONE_TOP - 50);
+      if (out.every(d => Math.hypot(d.x - x, d.y - y) > R * 2 + 8) && avoid.every(a => Math.hypot(a.x - x, a.y - y) > a.r + R + 8)) { out.push({ x, y }); added++; }
+    }
+    return out;
+  }
+  const NAMES = Object.keys(FORMATIONS);
+
+  // ---------- contracts ----------
+  const CONTRACTS = [
+    { id: 'sink',    text: g => `Sink ${g} target${g > 1 ? 's' : ''}`,      goal: a => 1 + (a > 0 ? 1 : 0), coins: 3, ok: s => s.pockets.length > 0 },
+    { id: 'chain',   text: g => `Land a ${g}-chain`,                       goal: a => 7 + a * 2, coins: 1, token: 1 },
+    { id: 'clash',   text: g => `${g} striker clash${g > 1 ? 'es' : ''}`,  goal: a => 1 + (a >= 2 ? 1 : 0), coins: 3 },
+    { id: 'bank',    text: g => `${g} Bank Shots`,                         goal: () => 3, coins: 3 },
+    { id: 'set',     text: g => `${g} Colour Sets`,                        goal: () => 2, coins: 3 },
+    { id: 'curl',    text: g => `${g} Curl Shots`,                         goal: () => 3, coins: 3 },
+    { id: 'shatter', text: g => `Shatter ${g} armored`,                    goal: () => 3, coins: 1, token: 1, ok: s => s.discs.filter(d => d.maxHp > 1).length >= 3 },
+    { id: 'bumper',  text: g => `Hit bumpers ${g} times`,                  goal: () => 5, coins: 2, ok: s => s.bumpers.length > 0 },
+    { id: 'shot',    text: g => `Score ${fmt(g)} in one shot`,             goal: (a, s) => Math.round(s.quota * 0.35 / 50) * 50, coins: 1, token: 1 },
+    { id: 'perfect', text: g => `${g} Perfect releases`,                   goal: () => 2, coins: 3 },
+    { id: 'full',    text: () => 'Full Clear',                             goal: () => 1, coins: 3, token: 1 },
+  ];
+  function rollContracts() {
+    const act = actIndex(RUN.round);
+    const pool = shuffle(CONTRACTS.filter(c => !c.ok || c.ok(S)));
+    S.contracts = pool.slice(0, 2).map(c => ({ def: c, goal: c.goal(act, S), prog: 0, done: false }));
+  }
+  function cx(id, amount = 1, absolute = false) {
+    let changed = false;
+    for (const k of S.contracts) {
+      if (k.done || k.def.id !== id) continue;
+      const before = k.prog;
+      k.prog = absolute ? Math.max(k.prog, amount) : k.prog + amount;
+      if (k.prog !== before) changed = true;
+      if (k.prog >= k.goal) {
+        k.done = true; k.prog = k.goal; RUN.contractsDone++;
+        const coins = k.def.coins + (P('clerk') ? 2 : 0), tok = k.def.token || 0;
+        RUN.coins += coins; RUN.tokens += tok; renderCoins();
+        S.banner = { text: 'Contract done!', sub: `${k.def.text(k.goal)} · +${coins} coins${tok ? ' · +1 upgrade token' : ''}`, t: 1.8 };
+        buzz([20, 30, 20]);
+      }
+    }
+    if (changed) renderContracts();
+  }
+  function renderContracts() {
+    $('contracts').innerHTML = S.contracts.map(k => {
+      const rew = `<span class="coin"></span>${k.def.coins + (P('clerk') ? 2 : 0)}${k.def.token ? ' <span class="token"></span>1' : ''}`;
+      const pg = k.def.id === 'shot' || k.def.id === 'full' || k.def.id === 'chain' ? (k.done ? 'done' : '') : `${Math.min(k.prog, k.goal)}/${k.goal}`;
+      return `<span class="ct tapk${k.done ? ' done' : ''}" tabindex="0" role="button" data-k="contract:${S.contracts.indexOf(k)}">${k.def.text(k.goal)}${pg ? ` <span class="pg">${pg}</span>` : ''} ${rew}</span>`;
+    }).join('') + (S.weather ? `<span class="chip weather tapk" tabindex="0" role="button" data-k="weather">${S.weather.name}: ${S.weather.desc}</span>` : '');
+  }
+
+  // ---------- run state ----------
+  let RUN, S, best = store.get('chainSmashDeckBest', null), uid = 0;
+  const quotaFor = r => Math.round(1500 * Math.pow(1.55, r - 1) * (RUN && RUN.kit && RUN.kit.quotaMul || 1) / 50) * 50;
+  const actIndex = r => Math.floor((r - 1) / 3);
+  const themeFor = r => THEMES[RUN.themes[actIndex(r) % RUN.themes.length]];
+
+  function freshRun(kit) {
+    RUN = { kit, round: 1, total: 0, perks: {}, deck: kit.deck.slice(), coins: kit.coins, tokens: 0, carry: 0, lastName: '', handDelta: kit.hand || 0,
+            themes: ['pond', ...shuffle(LATER_THEMES)], maxChain: 0, clashes: 0, sunk: 0, bestShot: 0, contractsDone: 0 };
+    (kit.perks || []).forEach(id => RUN.perks[id] = 1);
+  }
+  function showKits() {
+    $('kitList').innerHTML = KITS.map((k, i) => `<button class="offer" data-i="${i}"><strong>${k.name} <span class="dots">${k.deck.map(t => `<span class="sd${isUp(t) ? ' up' : ''}" data-t="${baseOf(t)}"></span>`).join('')}</span></strong><span class="desc">${k.desc}</span><span class="tag">Deck of ${k.deck.length} · you draw ${HAND} at random each round</span></button>`).join('');
+    $('shopOver').hidden = true; $('over').hidden = true; $('kitOver').hidden = false;
+    $('kitList').querySelector('button')?.focus();
+  }
+  $('kitList').addEventListener('click', e => {
+    const b = e.target.closest('.offer'); if (!b) return;
+    freshRun(KITS[+b.dataset.i]); renderPerks(); renderCoins();
+    $('kitOver').hidden = true; newRound();
+  });
+  const handSize = () => Math.max(2, HAND + P('hands') + RUN.handDelta);
+  function drawHand() {
+    const pool = [];
+    while (pool.length < handSize()) pool.push(...shuffle(RUN.deck));
+    return pool.slice(0, handSize());
+  }
+  function newRound() {
+    const theme = themeFor(RUN.round), act = actIndex(RUN.round);
+    let name; do { name = pick(NAMES); } while (name === RUN.lastName);
+    RUN.lastName = name;
+    const pockets = [], bumpers = [], patches = [], wells = [];
+    const all = () => [...pockets, ...bumpers, ...patches, ...wells];
+    const place = (n, r, list, ymin, ymax, gap = 18) => { let t = 0; const goal = list.length + n; while (list.length < goal && t++ < 600) { const x = rnd(r + 20, W - r - 20), y = rnd(ymin, ymax); if (all().every(o => Math.hypot(o.x - x, o.y - y) > o.r + r + gap)) list.push({ x, y, r, flash: 0 }); } };
+    place(theme.pockets, theme.pocketR || POCKET_R, pockets, 50, ZONE_TOP - 60);
+    place(theme.bumpers, BUMPER_R, bumpers, 90, ZONE_TOP - 70);
+    place(theme.patches, 50, patches, 120, ZONE_TOP - 60);
+    place(theme.wells, 26, wells, 140, ZONE_TOP - 120, 60);
+    let weather = null;
+    if (RUN.round > 1 && Math.random() < 0.55) {
+      const ids = Object.keys(WEATHER).filter(id => WEATHER[id].ok(theme));
+      const id = pick(ids), w = WEATHER[id];
+      weather = { id, name: w.nameFor ? w.nameFor(theme) : w.name, desc: w.descFor ? w.descFor(theme) : w.desc };
+      if (id === 'wind' || id === 'blizzard') { const a = rnd(0, Math.PI * 2); weather.wind = { x: Math.cos(a), y: Math.sin(a) }; }
+      if (id === 'thaw' && !patches.length) place(1, 40, patches, 140, ZONE_TOP - 80);
+    }
+    const blockers = [...pockets, ...bumpers, ...wells];
+    const pts = FORMATIONS[name]().map(p => name === 'Scatter' ? p : spreadPt(p)).filter(p => blockers.every(b => Math.hypot(b.x - p.x, b.y - p.y) > b.r + R + 4));
+    if (P('crowd')) scatter(pts, 3, blockers);
+    const discs = pts.map(p => mkTarget(p.x, p.y));
+    const sh = shuffle(discs);
+    const loop = Math.floor((RUN.round - 1) / 18);
+    const armored = act === 0 ? 0 : Math.min(discs.length - 4, 1 + act + loop * 2);
+    sh.slice(0, armored).forEach(d => { d.hp = d.maxHp = 2; });
+    const golds = P('midas') ? 3 : P('gold') ? 1 : 0;
+    sh.slice(armored, armored + golds).forEach(d => { d.gold = true; });
+    S = { theme, discs, pockets, bumpers, patches, wells, weather, hand: drawHand(), used: 0, score: RUN.carry, quota: quotaFor(RUN.round), chain: 0, shotPts: 0,
+          phase: 'aim', aimX: W / 2, held: null, pops: [], parts: [], shake: 0, freeze: 0, slowT: 0, slowLock: 0, slowUsed: false, slowK: 0,
+          banner: { text: name, sub: `${theme.name} · Round ${RUN.round} · Quota ${fmt(quotaFor(RUN.round))}`, sub2: weather ? `Weather: ${weather.name}` : '', t: 2.6 },
+          quotaHit: RUN.carry >= quotaFor(RUN.round), chainPulse: 0, lastSpeed: 0, lastSpin: 0, frPenalty: 0,
+          targetTotal: discs.length, touched: 0, fullClear: false, colRun: { c: -1, n: 0 }, windUsed: false, sunkCoins: 0,
+          shotMult: 1, prismN: 0, contracts: [], flakes: [], embers: [], cracks: [] };
+    if (weather && (weather.id === 'snow' || weather.id === 'blizzard')) S.flakes = Array.from({ length: 60 }, () => ({ x: rnd(0, W), y: rnd(0, H), s: rnd(.6, 1.6), r: rnd(1, 2.4) }));
+    if (theme.decor === 'lava') {
+      S.embers = Array.from({ length: 24 }, () => ({ x: rnd(0, W), y: rnd(0, H), s: rnd(.3, .9), r: rnd(1, 2.2) }));
+      S.cracks = Array.from({ length: 8 }, () => { const c = [{ x: rnd(0, W), y: rnd(0, ZONE_TOP) }]; for (let i = 0; i < 4; i++) { const l = c[c.length - 1]; c.push({ x: l.x + rnd(-50, 50), y: l.y + rnd(-50, 50) }); } return c; });
+    }
+    RUN.carry = 0;
+    rollContracts();
+    $('shopOver').hidden = true; $('over').hidden = true;
+    $('round').textContent = RUN.round; $('quota').textContent = fmt(S.quota); $('actName').textContent = theme.name;
+    renderHand(); renderScore(false); renderContracts();
+  }
+  function mkTarget(x, y) {
+    return { id: ++uid, x, y, vx: 0, vy: 0, r: R, m: R * R, kind: 't', col: Math.floor(Math.random() * 3), spin: 0, rot: Math.random() * 6.28, flash: 0, squash: 0, trail: [], hp: 1, maxHp: 1, age: 0 };
+  }
+  function mkStriker(card, x, y, rScale = 1) {
+    const type = baseOf(card), up = isUp(card);
+    let r = R * (P('wide') ? 1.25 : 1) * rScale, m = r * r;
+    if (type === 'heavy') { r *= 1.12; m = r * r * (up ? 3.5 : 2.5); }
+    const d = { id: ++uid, x, y, vx: 0, vy: 0, r, m, kind: 's', type, up, spin: 0, rot: Math.random() * 6.28, flash: 0, squash: 0, trail: [], age: 0, banked: false };
+    if (type === 'basic' && up) d.curlMul = 1.8;
+    if (type === 'heavy' && up) d.breaker = true;
+    if (type === 'ghost') { d.phase = up ? 4 : 2; d.through = new Set(); }
+    if (type === 'bomb') { d.armed = true; d.blastR = up ? 170 : 125; d.blastK = up ? 13 : 10; d.blastPts = up ? 150 : 50; }
+    if (type === 'magnet') { d.pullR = up ? 160 : 100; d.pullK = up ? 0.22 : 0.14; }
+    return d;
+  }
+
+  // ---------- HUD ----------
+  function renderHand() {
+    $('hand').innerHTML = S.hand.map((t, i) => `<span class="sd tapk${isUp(t) ? ' up' : ''}${i < S.used ? ' used' : ''}${i === S.used && S.phase !== 'done' ? ' next' : ''}" data-t="${baseOf(t)}" title="${sName(t)}" tabindex="0" role="button" data-k="striker:${t}"></span>`).join('');
+  }
+  function renderScore(bump) {
+    const el = $('score'); el.textContent = fmt(S.score);
+    if (bump && !reduce) { el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump'); }
+    const p = Math.min(1, S.score / S.quota);
+    $('progFill').style.width = (p * 100) + '%'; $('prog').classList.toggle('full', p >= 1);
+  }
+  function renderCoins() { $('coins').textContent = RUN.coins; $('tokens').textContent = RUN.tokens; $('tokWrap').hidden = !RUN.tokens; }
+  function renderPerks() {
+    const owned = PERKS.filter(p => P(p.id));
+    $('perks').innerHTML = owned.length
+      ? owned.map(p => `<span class="chip ${p.rarity} tapk" tabindex="0" role="button" data-k="perk:${p.id}">${p.name}</span>`).join('')
+      : '<span class="chip none">No perks yet. Clear a round to visit the shop.</span>';
+  }
+
+  // ---------- sizing ----------
+  let scale = 1;
+  function fit() {
+    const r = stage.getBoundingClientRect();
+    scale = Math.min(r.width / W, r.height / H);
+    const dpr = window.devicePixelRatio || 1;
+    cv.style.width = W * scale + 'px'; cv.style.height = H * scale + 'px';
+    cv.width = W * scale * dpr; cv.height = H * scale * dpr;
+    ctx.setTransform(scale * dpr, 0, 0, scale * dpr, 0, 0);
+  }
+  new ResizeObserver(fit).observe(stage);
+
+  // ---------- input ----------
+  const pt = e => { const b = cv.getBoundingClientRect(); return { x: (e.clientX - b.left) / scale, y: (e.clientY - b.top) / scale, t: performance.now() }; };
+  const clampX = x => clamp(x, R + 4, W - R - 4);
+  const clampY = y => clamp(y, ZONE_TOP + R, H - R - 8);
+  cv.addEventListener('pointerdown', e => {
+    if (!$('info').hidden) { hideInfo(); return; }
+    if (S && S.phase === 'roll') {
+      const p = pt(e); cv.setPointerCapture(e.pointerId);
+      S.touch = { x: p.x, y: p.y, sx: p.x, sy: p.y, t: p.t, moved: 0 };
+      return;
+    }
+    if (!S || S.phase !== 'aim') return;
+    const p = pt(e);
+    if (p.y < ZONE_TOP - 20) return;
+    cv.setPointerCapture(e.pointerId);
+    S.held = { x: clampX(p.x), y: clampY(p.y), trail: [p] };
+    S.aimX = S.held.x;
+  });
+  function windowStart(tr, ms) { const last = tr[tr.length - 1]; for (let i = tr.length - 1; i >= 0; i--) if (last.t - tr[i].t > ms) return i; return 0; }
+  // curl = how far the upward swipe bows away from a straight line (signed); only the final upward part counts
+  function curlOf(tr) {
+    if (tr.length < 4) return 0;
+    let st = tr.length - 1;
+    while (st > 0 && tr[st - 1].y >= tr[st].y - 0.5 && tr[tr.length - 1].t - tr[st - 1].t < 320) st--;
+    const seg = tr.slice(st);
+    if (seg.length < 3) return 0;
+    const a = seg[0], b = seg[seg.length - 1], dx = b.x - a.x, dy = b.y - a.y, L = Math.hypot(dx, dy);
+    if (L < 22) return 0;
+    let dev = 0;
+    for (const p of seg) { const d = ((p.x - a.x) * dy - (p.y - a.y) * dx) / L; if (Math.abs(d) > Math.abs(dev)) dev = d; }
+    const k = dev / (L * 0.1);
+    return Math.abs(k) < 0.15 ? 0 : clamp(k, -1, 1);
+  }
+  const PERFECT = [0.7, 0.85];
+  function liveSpeed(tr) {
+    if (tr.length < 2) return 0;
+    const last = tr[tr.length - 1], first = tr[windowStart(tr, 70)], dt = Math.max(8, last.t - first.t);
+    const vy = (last.y - first.y) / dt * 16.7 * gain;
+    if (vy > -1.2) return 0;
+    return Math.min(MAXV, Math.hypot((last.x - first.x) / dt * 16.7 * gain, vy));
+  }
+  function flick() {
+    const h = S.held, tr = h.trail, last = tr[tr.length - 1];
+    S.held = null;
+    const first = tr[windowStart(tr, 70)];
+    const dt = Math.max(8, last.t - first.t);
+    let vx = (last.x - first.x) / dt * 16.7 * gain, vy = (last.y - first.y) / dt * 16.7 * gain;
+    const sp = Math.hypot(vx, vy);
+    if (vy > -1.2 || sp < 1.5) return;
+    if (sp > MAXV) { vx *= MAXV / sp; vy *= MAXV / sp; }
+    const spin = curlOf(tr);
+    const d = mkStriker(S.hand[S.used], h.x, h.y); d.vx = vx; d.vy = vy; d.spin = spin; d.launched = true;
+    S.discs.push(d);
+    S.used++;
+    S.phase = 'roll'; S.chain = P('hot') ? 2 : 0; S.shotPts = 0; S.slowLock = 0; S.slowUsed = false;
+    S.active = d; S.sweepE = sweepMax(); S.taps = P('tactician') ? 2 : 1; S.touch = null; S.nudges = 1;
+    const pw = Math.min(sp, MAXV) / MAXV;
+    S.perfect = sp <= MAXV && pw >= PERFECT[0] && pw <= PERFECT[1];
+    S.perfectHits = S.perfect ? (P('sharp') ? 999 : 1) : 0;
+    if (S.perfect) { S.pops.push({ x: d.x, y: d.y - 24, t: 0, lines: ['Perfect!'], big: true }); spray(d.x, d.y, 14, C.gold, 2.5); buzz([10, 20, 10]); cx('perfect'); }
+    S.shotMult = d.type === 'comet' ? (d.up ? 3 : 2) : 1; S.prismN = d.type === 'prism' ? (d.up ? 4 : 5) : 0;
+    S.lastSpeed = Math.min(sp, MAXV); S.lastSpin = spin;
+    renderHand(); buzz(6);
+  }
+  cv.addEventListener('pointermove', e => {
+    if (S && S.touch) { const p = pt(e); S.touch.moved = Math.max(S.touch.moved, Math.hypot(p.x - S.touch.sx, p.y - S.touch.sy)); S.touch.x = p.x; S.touch.y = p.y; return; }
+    const h = S && S.held; if (!h) return;
+    for (const ev of (e.getCoalescedEvents ? e.getCoalescedEvents() : [e])) {
+      const p = pt(ev);
+      h.trail.push(p); if (h.trail.length > 40) h.trail.shift();
+      h.x = clampX(p.x); S.aimX = h.x;
+      if (p.y < ZONE_TOP) { flick(); return; }
+      h.y = clampY(p.y);
+    }
+  });
+  cv.addEventListener('pointerup', e => {
+    if (S && S.touch) {
+      const tc = S.touch; S.touch = null; const dur = performance.now() - tc.t;
+      if (dur < 220 && tc.moved < 14) useAbility();
+      else if (dur < 380 && tc.moved > 30) nudge(tc.x - tc.sx, tc.y - tc.sy);
+      return;
+    }
+    if (S && S.held) { S.held.trail.push(pt(e)); flick(); }
+  });
+  cv.addEventListener('pointercancel', () => { if (S) { S.held = null; S.touch = null; } });
+  const sweepMax = () => 90 * (P('sweeper') ? 2 : 1);
+  function nudge(dx, dy) {
+    const d = S.active, L = Math.hypot(dx, dy);
+    if (!d || d.dead || S.phase !== 'roll' || S.nudges <= 0 || L < 1) return;
+    d.vx += dx / L * 3; d.vy += dy / L * 3;
+    S.nudges--;
+    S.nudgeFx = { x: d.x, y: d.y, a: Math.atan2(dy, dx), t: 0 };
+    spray(d.x, d.y, 10, C.rare, 2);
+    S.pops.push({ x: d.x, y: d.y - 18, t: 0, lines: ['Nudge!'], big: false });
+    buzz(12);
+  }
+  function useAbility() {
+    const d = S.active;
+    if (!d || d.dead || S.phase !== 'roll' || S.taps <= 0) return;
+    const sp = Math.hypot(d.vx, d.vy);
+    const name = (ABILITY[d.type] || ABILITY.basic)[0];
+    if (d.type === 'bomb') { if (!d.armed) return; explode(d); }
+    else if (d.type === 'splitter') { if (d.dead) return; d.dead = 'split'; resolveDead(); }
+    else if (d.type === 'magnet') {
+      for (const t of S.discs) { if (t.kind !== 't') continue; const dx = d.x - t.x, dy = d.y - t.y, dist = Math.hypot(dx, dy); if (dist < d.pullR * 1.6 && dist > 1) { const k = 4.5 * (1 - dist / (d.pullR * 1.6)); t.vx += dx / dist * k; t.vy += dy / dist * k; } }
+      S.pulse = { x: d.x, y: d.y, t: 0, r: d.pullR * 1.6 };
+    }
+    else if (d.type === 'heavy') { if (sp < 0.1) return; d.vx = d.vy = 0; d.spin = 0; spray(d.x, d.y, 16, C.frost, 2.5); S.shake = reduce ? 0 : 4; }
+    else { if (sp < 0.3) return; d.vx *= 0.4; d.vy *= 0.4; spray(d.x, d.y, 10, C.frost, 2); }
+    S.taps--;
+    S.pops.push({ x: d.x, y: d.y - 18, t: 0, lines: [name + '!'], big: false });
+    buzz([15, 15]);
+  }
+
+  // ---------- physics ----------
+  function timeScale() {
+    let target = 1;
+    if (S.slowT > 0) target = 0.3;
+    if (S.slowLock > 0) target = Math.min(target, 0.35);
+    S.slowK += ((target < 1 ? 1 : 0) - S.slowK) * 0.12;
+    return target;
+  }
+  function curlFactor(d, sp) {
+    if (!d.launched) return 1;
+    if (P('late')) return clamp(5 / (sp + 1.5), 0.2, 3);
+    if (P('snake')) return Math.sin(d.age * 0.13) * 1.9;
+    return 1;
+  }
+  function step() {
+    if (!S || S.phase === 'idle') return 1;
+    if (S.freeze > 0) { S.freeze--; return 0; }
+    const ts = timeScale();
+    if (S.slowT > 0) S.slowT--;
+    if (S.slowLock > 0) S.slowLock--;
+    const sub = 4, f = ts / sub;
+    const curlK = 0.034 * (P('curl') ? 1.7 : 1);
+    // sweeping: finger held (not a tap) near the active striker
+    const a0 = S.active, tc = S.touch;
+    S.sweeping = !!(a0 && !a0.dead && tc && S.sweepE > 0 && performance.now() - tc.t > 140 && Math.hypot(tc.x - a0.x, tc.y - a0.y) < 110 && Math.hypot(a0.vx, a0.vy) > 0.3);
+    if (S.sweeping) { S.sweepE -= ts; if (Math.random() < .6) spray(a0.x + rnd(-14, 14), a0.y - a0.r - rnd(4, 20), 1, C.frost, 1.2); }
+    const baseFr = Math.min(.997, S.theme.fr + (P('slick') ? .004 : 0)) - S.frPenalty;
+    const patchFr = S.theme.patch === 'SAND' ? 0.95 : 0.955;
+    const wind = S.weather && S.weather.wind;
+    for (let k = 0; k < sub; k++) {
+      for (const d of S.discs) {
+        const sp = Math.hypot(d.vx, d.vy);
+        if (d.type === 'magnet' && sp > 0.5) {
+          for (const t of S.discs) {
+            if (t.kind !== 't') continue;
+            const dx = d.x - t.x, dy = d.y - t.y, dist = Math.hypot(dx, dy);
+            if (dist < d.pullR && dist > d.r + t.r) { const a = d.pullK * f * (1 - dist / d.pullR); t.vx += dx / dist * a; t.vy += dy / dist * a; }
+          }
+        }
+        if (sp > 0.15) {
+          if (wind) { const damp = Math.min(1, sp / 4); d.vx += wind.x * 0.04 * f * damp; d.vy += wind.y * 0.04 * f * damp; }
+          for (const w of S.wells) {
+            const dx = w.x - d.x, dy = w.y - d.y, dist = Math.hypot(dx, dy);
+            if (dist < WELL_R && dist > 4) { const a = 0.16 * f * (1 - dist / WELL_R) * Math.min(1, sp / 3); d.vx += dx / dist * a; d.vy += dy / dist * a; }
+          }
+        }
+        if (d.spin) {
+          if (sp > 0.3) { const a = d.spin * curlK * (d.curlMul || 1) * curlFactor(d, sp) * (S.sweeping && d === S.active ? 0.35 : 1) * f, c = Math.cos(a), s = Math.sin(a), nx = d.vx * c - d.vy * s, ny = d.vx * s + d.vy * c; d.vx = nx; d.vy = ny; }
+          if (P('boomerang') && d.launched) d.spin = clamp(d.spin * Math.pow(1.004, f), -1.6, 1.6);
+          else { d.spin *= Math.pow(0.996, f); if (Math.abs(d.spin) < 0.01) d.spin = 0; }
+        }
+        d.x += d.vx * f; d.y += d.vy * f;
+        const inPatch = S.patches.some(s => Math.hypot(s.x - d.x, s.y - d.y) < s.r);
+        const swept = S.sweeping && d === S.active;
+        const fr = Math.pow(swept ? Math.max(baseFr, 0.997) : inPatch ? patchFr : baseFr, f); d.vx *= fr; d.vy *= fr;
+        if (!swept) { const s2 = Math.hypot(d.vx, d.vy); if (s2 > 0) { const kk = Math.max(0, s2 - 0.012 * f) / s2; d.vx *= kk; d.vy *= kk; } }
+        const r = d.r, wr = S.theme.wall;
+        if (d.x < r) { d.x = r; d.vx = Math.abs(d.vx) * wr; wall(d, 0, d.y); }
+        if (d.x > W - r) { d.x = W - r; d.vx = -Math.abs(d.vx) * wr; wall(d, W, d.y); }
+        if (d.y < r) { d.y = r; d.vy = Math.abs(d.vy) * wr; wall(d, d.x, 0); }
+        if (d.y > H - r) { d.y = H - r; d.vy = -Math.abs(d.vy) * wr; wall(d, d.x, H); }
+        for (const b of S.bumpers) {
+          let nx = d.x - b.x, ny = d.y - b.y; const dist = Math.hypot(nx, ny), rr = d.r + b.r;
+          if (dist >= rr || dist === 0) continue;
+          nx /= dist; ny /= dist; d.x = b.x + nx * rr; d.y = b.y + ny * rr;
+          const vn = d.vx * nx + d.vy * ny;
+          if (vn < 0) {
+            d.vx -= 2 * vn * nx; d.vy -= 2 * vn * ny;
+            const s2 = Math.hypot(d.vx, d.vy) || 1, want = Math.min(18, Math.max(s2 * 1.15, 4));
+            d.vx *= want / s2; d.vy *= want / s2;
+            b.flash = 1; if (d.kind === 's') d.banked = true;
+            spray(d.x - nx * d.r, d.y - ny * d.r, 6, C.gold, 2);
+            if (S.phase === 'roll') { S.chain++; award(chainValue(), b.x, b.y - 18, ['Bumper']); cx('bumper'); cx('chain', S.chain, true); }
+          }
+        }
+        for (const p of S.pockets) if (!d.dead && Math.hypot(d.x - p.x, d.y - p.y) < p.r - 3) { d.dead = 'sunk'; d.pocket = p; }
+      }
+      for (let i = 0; i < S.discs.length; i++) for (let j = i + 1; j < S.discs.length; j++) {
+        const a = S.discs[i], b = S.discs[j];
+        if (a.dead || b.dead) continue;
+        let nx = b.x - a.x, ny = b.y - a.y; const dist = Math.hypot(nx, ny), rr = a.r + b.r;
+        if (dist >= rr || dist === 0) { a.through?.delete(b.id); b.through?.delete(a.id); continue; }
+        if (a.through?.has(b.id) || b.through?.has(a.id)) continue;
+        const g = a.phase > 0 && b.kind === 't' ? a : b.phase > 0 && a.kind === 't' ? b : null;
+        if (g) { const o = g === a ? b : a; g.through.add(o.id); g.phase--; hit(a, b, o.x, o.y, 4, ['Phase']); continue; }
+        nx /= dist; ny /= dist;
+        const ia = 1 / a.m, ib = 1 / b.m, ov = (rr - dist) / (ia + ib);
+        a.x -= nx * ov * ia; a.y -= ny * ov * ia; b.x += nx * ov * ib; b.y += ny * ov * ib;
+        const rel = (b.vx - a.vx) * nx + (b.vy - a.vy) * ny;
+        if (rel >= 0) continue;
+        const jj = -(1 + 0.9) * rel / (ia + ib);
+        a.vx -= nx * jj * ia; a.vy -= ny * jj * ia; b.vx += nx * jj * ib; b.vy += ny * jj * ib;
+        hit(a, b, a.x + nx * a.r, a.y + ny * a.r, -rel);
+        a.spin *= 0.3; b.spin *= 0.3;
+        for (const s of [a, b]) if (s.type === 'splitter' && !s.dead) s.dead = 'split';
+      }
+      resolveDead();
+    }
+    let moving = false;
+    for (const d of S.discs) {
+      const sp = Math.hypot(d.vx, d.vy);
+      d.age += ts;
+      if (d.armed && d.age > 12 && sp < 0.7) explode(d);
+      if (sp < 0.04) { d.vx = d.vy = 0; d.spin = 0; } else moving = true;
+      d.rot += (d.spin * 0.35 + (d.kind === 's' ? sp * 0.02 : 0)) * ts;
+      if (sp > 3) { d.trail.push({ x: d.x, y: d.y }); if (d.trail.length > 9) d.trail.shift(); }
+      else if (d.trail.length) d.trail.shift();
+    }
+    resolveDead();
+    for (const b of S.bumpers) b.flash = Math.max(0, b.flash - .05);
+    if (S.phase === 'roll' && S.chain >= 8 && !S.slowUsed) {
+      let maxSp = 0; for (const d of S.discs) maxSp = Math.max(maxSp, Math.hypot(d.vx, d.vy));
+      if (maxSp > 0.2 && maxSp < 2.2) { S.slowLock = 75; S.slowUsed = true; }
+    }
+    if (S.phase === 'roll' && !moving) endTurn();
+    return ts;
+  }
+  function resolveDead() {
+    if (!S.discs.some(d => d.dead)) return;
+    const add = [];
+    for (const d of S.discs) {
+      if (d.dead === 'sunk') {
+        const p = d.pocket, lava = S.theme.pocketStyle === 'lava';
+        spray(p.x, p.y, 14, lava ? C.lava : d.kind === 's' ? C.striker : colorOf(d), 2.2);
+        if (d.kind === 't') {
+          touch(d);
+          let pts = P('hustler') ? 500 : 200; if (lava) pts = Math.round(pts * 1.5);
+          const coins = P('hustler') ? 2 : 1;
+          RUN.sunk++; RUN.coins += coins; S.sunkCoins += coins; renderCoins();
+          award(pts, p.x, p.y, [lava ? 'Melted!' : 'Sunk!', `+${coins} coin${coins > 1 ? 's' : ''}`], true);
+          cx('sink'); buzz(30);
+        } else S.pops.push({ x: p.x, y: p.y, t: 0, lines: [lava ? 'Burned' : 'Scratch'], big: false });
+      } else if (d.dead === 'split') {
+        const sp = Math.max(Math.hypot(d.vx, d.vy), 5), ang = Math.atan2(d.vy, d.vx);
+        for (const da of d.up ? [-0.6, 0, 0.6] : [-0.5, 0.5]) {
+          const a = ang + da, side = Math.sign(da), sh = mkStriker('shard', d.x + Math.cos(a + side * 1.2) * d.r * .5, d.y + Math.sin(a + side * 1.2) * d.r * .5, 0.72);
+          sh.vx = Math.cos(a) * sp * .9; sh.vy = Math.sin(a) * sp * .9; add.push(sh);
+        }
+        spray(d.x, d.y, 12, C.striker, 2.5);
+        S.pops.push({ x: d.x, y: d.y - 10, t: 0, lines: ['Split!'], big: false });
+      } else if (d.dead === 'shatter') {
+        spray(d.x, d.y, 20, colorOf(d), 3);
+        award(100, d.x, d.y, ['Shatter!']); cx('shatter'); buzz(25);
+      }
+    }
+    S.discs = S.discs.filter(d => !d.dead).concat(add);
+  }
+  function explode(b) {
+    b.armed = false; b.dead = 'boom';
+    spray(b.x, b.y, 36, C.gold, 4.5); spray(b.x, b.y, 18, C.frost, 3);
+    S.shake = reduce ? 0 : 12; S.freeze = reduce ? 0 : 5; buzz([30, 20, 50]);
+    S.boom = { x: b.x, y: b.y, t: 0, r: b.blastR };
+    for (const d of S.discs) {
+      if (d === b) continue;
+      const dx = d.x - b.x, dy = d.y - b.y, dist = Math.hypot(dx, dy) || 1;
+      if (dist < b.blastR) { const k = b.blastK * (1 - dist / b.blastR); d.vx += dx / dist * k; d.vy += dy / dist * k; }
+    }
+    award(b.blastPts, b.x, b.y, ['Boom!'], true);
+  }
+  function wall(d, x, y) {
+    if (P('ricochet') && d.launched && d.spin) d.spin = clamp(-d.spin * 1.4, -1.5, 1.5); else d.spin *= 0.5;
+    const sp = Math.hypot(d.vx, d.vy);
+    if (sp > 1.5) spray(x, y, 4, C.frost, sp * 0.3);
+    if (d.kind === 's' && sp > 1) d.banked = true;
+    if (S.phase !== 'roll' || !P('boards') || sp < 1) return;
+    S.chain++; cx('chain', S.chain, true);
+    award(chainValue(), x === 0 ? 24 : x === W ? W - 24 : x, y === 0 ? 30 : y === H ? H - 30 : y, ['Boards']);
+  }
+  const chainValue = () => Math.round(Math.min(S.chain, P('cap') ? 40 : 24) * 10 * S.shotMult * (P('reactor') && S.chain > 10 ? 2 : 1) * (S.weather && P('storm') ? 1.5 : 1));
+  function touch(t) {
+    if (t.kind !== 't' || t.touched) return;
+    t.touched = true; S.touched++;
+    if (!S.fullClear && S.touched >= S.targetTotal) {
+      S.fullClear = true;
+      S.banner = { text: 'Full Clear!', sub: 'Every target touched: +500', t: 1.8 };
+      award(500, W / 2, 150, ['Full Clear!'], true);
+      S.slowT = 30; buzz([40, 40, 80]); cx('full');
+    }
+  }
+  function hit(a, b, x, y, force, extra = []) {
+    if (S.phase !== 'roll' || force < 0.15) return;
+    S.chain++;
+    let pts = chainValue();
+    const tags = [...extra];
+    const st = a.kind === 's' ? a : b.kind === 's' ? b : null;
+    let clash = a.kind === 's' && b.kind === 's';
+    if (!clash && S.prismN && S.chain % S.prismN === 0) { clash = true; tags.push('Prism'); }
+    if (clash) { const m = P('fever') ? 15 : 10; pts *= m; tags.push(`Clash ×${m}`); RUN.clashes++; cx('clash'); }
+    if (st && st.banked) { const m = P('banker') ? 3 : 2; pts *= m; tags.push(`Bank Shot ×${m}`); st.banked = false; cx('bank'); }
+    if (st && st.launched && Math.abs(st.spin) > 0.15) { const m = P('curl') ? 2 : 1.5; pts = Math.round(pts * m); tags.push(`Curl Shot ×${m}`); cx('curl'); }
+    if (a.gold || b.gold) { pts *= 3; tags.push('Gold ×3'); }
+    if (S.perfectHits > 0) { pts = Math.round(pts * 1.5); tags.push('Perfect ×1.5'); S.perfectHits--; }
+    if (S.shotMult > 1) tags.push(S.shotMult > 2 ? 'Supernova' : 'Comet');
+    award(pts, x, y, tags, clash);
+    a.flash = b.flash = 1; a.squash = b.squash = Math.min(1, force / 6);
+    RUN.maxChain = Math.max(RUN.maxChain, S.chain); cx('chain', S.chain, true);
+    S.chainPulse = 1;
+    const tg = [a, b].filter(d => d.kind === 't');
+    if (tg.length) {
+      const c = tg[0].col;
+      if (c === S.colRun.c) S.colRun.n++; else S.colRun = { c, n: 1 };
+      if (S.colRun.n >= 3) { S.colRun.n = 0; award(300, x, y - 26, ['Colour Set!'], true); spray(x, y, 14, C.tc[c], 3); buzz(20); cx('set'); }
+    }
+    for (const t of tg) {
+      touch(t);
+      if (t.maxHp > 1) { t.hp -= st && st.breaker ? 2 : 1; if (t.hp <= 0) t.dead = 'shatter'; else spray(t.x, t.y, 8, C.frost, 2); }
+    }
+    const n = clash ? 22 : (6 + Math.min(10, force * 1.2)) | 0;
+    spray(x, y, n, clash ? C.gold : C.frost, 1 + force * 0.5);
+    if (clash) { S.freeze = reduce ? 0 : 6; S.shake = reduce ? 0 : 9; S.slowT = 24; buzz([25, 30, 45]); }
+    else { buzz(8); if (S.chain % 10 === 0) { S.freeze = reduce ? 0 : 3; S.shake = reduce ? 0 : 4; } }
+  }
+  function award(pts, x, y, tags, big) {
+    S.score += pts; S.shotPts += pts; RUN.total += pts;
+    renderScore(true);
+    S.pops.push({ x, y, t: 0, lines: [...tags, '+' + fmt(pts)], big });
+    if (S.phase === 'roll') cx('shot', S.shotPts, true);
+    if (!S.quotaHit && S.score >= S.quota) {
+      S.quotaHit = true;
+      S.banner = { text: 'Quota reached!', sub: 'Everything else is bonus coins', t: 1.6 };
+      buzz([30, 40, 30]);
+    }
+  }
+  function spray(x, y, n, color, power) {
+    for (let i = 0; i < n; i++) {
+      const a = Math.random() * Math.PI * 2, s = rnd(.4, 1) * power;
+      S.parts.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: rnd(.25, .55), t: 0, size: rnd(1.2, 3), color });
+    }
+  }
+  function weatherTick() {
+    const w = S.weather; if (!w) return;
+    if (w.id === 'snow') S.frPenalty = Math.min(0.012, S.frPenalty + 0.002);
+    if (w.id === 'thaw') S.patches.forEach(p => p.r = Math.min(110, p.r + 12));
+    if (w.id === 'blizzard') { const a = rnd(0, Math.PI * 2); w.wind = { x: Math.cos(a), y: Math.sin(a) }; }
+  }
+  function endTurn() {
+    RUN.bestShot = Math.max(RUN.bestShot, S.shotPts);
+    S.slowLock = 0; S.slowT = 0;
+    weatherTick();
+    if (S.used < S.hand.length) { S.phase = 'aim'; renderHand(); return; }
+    if (S.score < S.quota && P('wind') && !S.windUsed) {
+      S.windUsed = true; S.hand.push('basic'); S.phase = 'aim'; renderHand();
+      S.banner = { text: 'Second Wind!', sub: 'One more striker', t: 1.6 }; buzz([20, 20, 20]);
+      return;
+    }
+    S.phase = 'done'; renderHand();
+    setTimeout(S.score >= S.quota ? roundCleared : runOver, 650);
+  }
+
+  // ---------- shop ----------
+  let SHOP;
+  function rollRarity() {
+    const act = actIndex(RUN.round), r = Math.random();
+    if (r < 0.06 + act * 0.03) return 'legendary';
+    if (r < 0.4) return 'rare';
+    return 'common';
+  }
+  function rollOffers() {
+    const strikers = [], perks = [];
+    const sKeys = Object.keys(STRIKERS).filter(k => k !== 'basic');
+    let guard = 0;
+    while (strikers.length < 3 && guard++ < 200) {
+      const rar = rollRarity(), opts = sKeys.filter(k => STRIKERS[k].rarity === rar && !strikers.some(s => s.id === k));
+      if (opts.length) strikers.push({ id: pick(opts), sold: false });
+    }
+    guard = 0;
+    while (perks.length < 3 && guard++ < 200) {
+      const rar = rollRarity(), opts = PERKS.filter(p => p.rarity === rar && !P(p.id) && !perks.some(o => o.id === p.id));
+      if (opts.length) perks.push({ id: pick(opts).id, sold: false });
+    }
+    SHOP.strikers = strikers; SHOP.perks = perks;
+  }
+  function roundCleared() {
+    const over = S.score - S.quota;
+    const base = 4, overkill = Math.min(5, Math.floor(over / S.quota * 5)), interest = Math.min(5, Math.floor(RUN.coins / 5)), piggy = P('piggy') ? 2 : 0, storm = S.weather ? 2 : 0;
+    RUN.coins += base + overkill + interest + piggy + storm; renderCoins();
+    if (P('carry')) RUN.carry = over;
+    buzz([40, 60, 40]);
+    SHOP = { rerollCost: 2, mode: null };
+    rollOffers();
+    $('shopTitle').textContent = `Round ${RUN.round} cleared`;
+    const parts = [['Round', base], ['Overkill', overkill], ['Interest', interest]];
+    if (storm) parts.push(['Weather', storm]);
+    if (piggy) parts.push(['Piggy Bank', piggy]);
+    $('earn').innerHTML = parts.map(([k, v]) => `<span>${k} <b>+${v}</b></span>`).join('');
+    const nt = themeFor(RUN.round + 1);
+    $('nextInfo').textContent = `Next: ${nt.name}, quota ${fmt(quotaFor(RUN.round + 1))}${RUN.carry ? ` (starting at ${fmt(RUN.carry)})` : ''}.`;
+    renderShop();
+    $('shopOver').hidden = false;
+    $('shopOver').querySelector('.card').scrollTop = 0;
+  }
+  function renderShop() {
+    $('wallet').textContent = RUN.coins; $('walletTok').textContent = RUN.tokens;
+    const coinHtml = '<span class="coin"></span>';
+    $('offStrikers').innerHTML = SHOP.strikers.map((o, i) => {
+      const s = STRIKERS[o.id], price = PRICE.striker[s.rarity];
+      return `<button class="offer ${s.rarity}${o.sold ? ' sold' : ''}" data-kind="striker" data-i="${i}" ${o.sold || RUN.coins < price ? 'disabled' : ''}>
+        <strong><span class="sd" data-t="${o.id}"></span>${s.name}</strong>
+        <span class="tag">${s.rarity} striker · upgrades to ${s.up}</span><span class="desc">${s.desc}</span>
+        <span class="price">${o.sold ? 'Added' : coinHtml + price}</span></button>`;
+    }).join('') || '<p>Sold out.</p>';
+    $('offPerks').innerHTML = SHOP.perks.map((o, i) => {
+      const p = perkById(o.id), price = PRICE.perk[p.rarity];
+      const swap = p.group && PERKS.find(q => q.group === p.group && P(q.id));
+      return `<button class="offer ${p.rarity}${o.sold ? ' sold' : ''}" data-kind="perk" data-i="${i}" ${o.sold || RUN.coins < price ? 'disabled' : ''}>
+        <strong>${p.name}</strong><span class="tag">${p.rarity} perk${swap ? ` · replaces ${swap.name}` : ''}</span><span class="desc">${p.desc}</span>
+        <span class="price">${o.sold ? 'Owned' : coinHtml + price}</span></button>`;
+    }).join('') || '<p>You own every perk.</p>';
+    $('reroll').textContent = `Reroll · ${SHOP.rerollCost}`;
+    $('reroll').disabled = RUN.coins < SHOP.rerollCost;
+    const canUp = RUN.deck.some(t => !isUp(t)) && (RUN.tokens > 0 || RUN.coins >= UPGRADE_COST);
+    $('upgradeBtn').textContent = SHOP.mode === 'up' ? 'Cancel' : RUN.tokens > 0 ? 'Upgrade · 1 token' : `Upgrade · ${UPGRADE_COST}`;
+    $('upgradeBtn').disabled = SHOP.mode !== 'up' && !canUp;
+    $('removeBtn').textContent = SHOP.mode === 'rm' ? 'Cancel' : `Remove · ${REMOVE_COST}`;
+    $('removeBtn').disabled = SHOP.mode !== 'rm' && (RUN.coins < REMOVE_COST || RUN.deck.length <= 3);
+    const counts = {}; RUN.deck.forEach(t => counts[t] = (counts[t] || 0) + 1);
+    $('deckTitle').textContent = SHOP.mode === 'rm' ? 'Tap a striker to remove it'
+      : SHOP.mode === 'up' ? 'Tap a striker to upgrade it'
+      : `Your deck · ${RUN.deck.length} strikers, draw ${handSize()}`;
+    $('deckList').className = 'deck' + (SHOP.mode === 'rm' ? ' removing' : SHOP.mode === 'up' ? ' upgrading' : '');
+    $('deckList').innerHTML = Object.entries(counts).map(([t, n]) => {
+      const dis = SHOP.mode === 'up' && isUp(t);
+      const tip = SHOP.mode === 'up' && !isUp(t) ? ` → ${STRIKERS[baseOf(t)].up}: ${STRIKERS[baseOf(t)].upDesc}` : '';
+      return `<button class="dchip" data-t="${t}" ${SHOP.mode ? '' : 'tabindex="-1"'} ${dis ? 'disabled' : ''}><span class="sd${isUp(t) ? ' up' : ''}" data-t="${baseOf(t)}"></span>${sName(t)} ×${n}${tip}</button>`;
+    }).join('');
+  }
+  $('shopOver').addEventListener('click', e => {
+    const o = e.target.closest('.offer');
+    if (o && !o.disabled) {
+      const i = +o.dataset.i;
+      if (o.dataset.kind === 'striker') {
+        const off = SHOP.strikers[i]; RUN.coins -= PRICE.striker[STRIKERS[off.id].rarity]; RUN.deck.push(off.id); off.sold = true;
+      } else {
+        const off = SHOP.perks[i], p = perkById(off.id);
+        RUN.coins -= PRICE.perk[p.rarity];
+        if (p.group) PERKS.filter(q => q.group === p.group).forEach(q => delete RUN.perks[q.id]);
+        RUN.perks[p.id] = 1; off.sold = true; renderPerks();
+      }
+      buzz(15); renderCoins(); renderShop(); return;
+    }
+    const dc = e.target.closest('.dchip');
+    if (dc && SHOP.mode && !dc.disabled) {
+      const t = dc.dataset.t, idx = RUN.deck.indexOf(t);
+      if (SHOP.mode === 'rm' && idx >= 0 && RUN.deck.length > 3 && RUN.coins >= REMOVE_COST) { RUN.deck.splice(idx, 1); RUN.coins -= REMOVE_COST; buzz(15); }
+      if (SHOP.mode === 'up' && idx >= 0 && !isUp(t)) {
+        if (RUN.tokens > 0) RUN.tokens--; else if (RUN.coins >= UPGRADE_COST) RUN.coins -= UPGRADE_COST; else return;
+        RUN.deck[idx] = t + '+'; buzz([15, 20, 15]);
+      }
+      SHOP.mode = null; renderCoins(); renderShop();
+    }
+  });
+  $('reroll').addEventListener('click', () => { if (RUN.coins < SHOP.rerollCost) return; RUN.coins -= SHOP.rerollCost; SHOP.rerollCost++; rollOffers(); renderCoins(); renderShop(); });
+  $('upgradeBtn').addEventListener('click', () => { SHOP.mode = SHOP.mode === 'up' ? null : 'up'; renderShop(); });
+  $('removeBtn').addEventListener('click', () => { SHOP.mode = SHOP.mode === 'rm' ? null : 'rm'; renderShop(); });
+  $('nextRound').addEventListener('click', () => { RUN.round++; newRound(); });
+
+  function runOver() {
+    const cleared = RUN.round - 1;
+    if (!best || cleared > best.round - 1 || (cleared === best.round - 1 && RUN.total > best.total)) {
+      best = { round: RUN.round, total: RUN.total, kit: RUN.kit.name }; store.set('chainSmashDeckBest', best);
+    }
+    $('overSub').textContent = `${S.theme.name}, round ${RUN.round}: ${fmt(S.score)} of ${fmt(S.quota)}.`;
+    $('finalScore').textContent = fmt(RUN.total);
+    $('stKit').textContent = RUN.kit.name;
+    $('stRounds').textContent = cleared; $('stContracts').textContent = RUN.contractsDone; $('stChain').textContent = RUN.maxChain;
+    $('stClash').textContent = RUN.clashes; $('stShot').textContent = fmt(RUN.bestShot);
+    $('stBest').textContent = `Round ${best.round} · ${fmt(best.total)}`;
+    $('over').hidden = false; $('again').focus();
+  }
+
+  // ---------- drawing ----------
+  function drawRink() {
+    const A = S.theme;
+    ctx.fillStyle = A.floor; ctx.fillRect(0, 0, W, H);
+    ctx.strokeStyle = A.line; ctx.lineWidth = 2;
+    const mid = ZONE_TOP * .5;
+    if (A.decor === 'arena') {
+      ctx.strokeStyle = C.red; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(0, mid); ctx.lineTo(W, mid); ctx.stroke();
+      ctx.strokeStyle = C.blue;
+      [ZONE_TOP * .25, ZONE_TOP * .75].forEach(y => { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); });
+      ctx.strokeStyle = A.line; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(W / 2, mid, 55, 0, Math.PI * 2); ctx.stroke();
+    } else if (A.decor === 'cave') {
+      ctx.globalAlpha = .22; ctx.lineWidth = 1.5;
+      for (let i = 0; i < 8; i++) { const y0 = 40 + i * 64; ctx.beginPath(); ctx.moveTo(0, y0); ctx.bezierCurveTo(W * .3, y0 + 30, W * .6, y0 - 30, W, y0 + 12); ctx.stroke(); }
+      ctx.globalAlpha = 1;
+    } else if (A.decor === 'arcade') {
+      ctx.globalAlpha = .22; ctx.fillStyle = A.line;
+      for (let x = 20; x < W; x += 20) for (let y = 20; y < ZONE_TOP; y += 20) ctx.fillRect(x - 1, y - 1, 2, 2);
+      ctx.globalAlpha = .8; ctx.strokeStyle = C.pink; ctx.lineWidth = 3;
+      ctx.strokeRect(5, 5, W - 10, H - 10);
+      ctx.beginPath(); ctx.moveTo(0, mid); ctx.lineTo(W, mid); ctx.stroke();
+      ctx.beginPath(); ctx.arc(W / 2, mid, 50, 0, Math.PI * 2); ctx.stroke();
+      ctx.globalAlpha = 1;
+    } else if (A.decor === 'boards') {
+      for (let y = 0, i = 0; y < H; y += 34, i++) {
+        ctx.fillStyle = i % 2 ? 'rgba(255,255,255,.06)' : 'rgba(0,0,0,.04)'; ctx.fillRect(0, y, W, 34);
+        ctx.strokeStyle = A.line; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+        for (let x = (i * 137) % 160; x < W; x += 160) { ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, y + 34); ctx.stroke(); ctx.fillStyle = A.line; ctx.fillRect(x + 6, y + 6, 2, 2); ctx.fillRect(x + 6, y + 26, 2, 2); }
+      }
+    } else if (A.decor === 'lava') {
+      ctx.strokeStyle = C.lava; ctx.lineWidth = 2; ctx.globalAlpha = .35;
+      for (const c of S.cracks) { ctx.beginPath(); c.forEach((p, i) => i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y)); ctx.stroke(); }
+      ctx.globalAlpha = 1;
+    } else if (A.decor === 'lab') {
+      ctx.globalAlpha = .18; ctx.lineWidth = 1;
+      for (let x = 0; x <= W; x += 40) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
+      for (let y = 0; y <= H; y += 40) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+      ctx.globalAlpha = 1;
+    } else {
+      ctx.beginPath(); ctx.arc(W / 2, mid, 60, 0, Math.PI * 2); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(0, mid); ctx.lineTo(W, mid); ctx.stroke();
+    }
+    const now = performance.now() / 1000;
+    for (const w of S.wells) {
+      for (let i = 0; i < 4; i++) {
+        const k = (now * .5 + i / 4) % 1;
+        ctx.globalAlpha = (1 - k) * .5; ctx.strokeStyle = A.line; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.arc(w.x, w.y, WELL_R * (1 - k) + 8, 0, Math.PI * 2); ctx.stroke();
+      }
+      ctx.globalAlpha = 1; ctx.fillStyle = A.line; ctx.beginPath(); ctx.arc(w.x, w.y, 6, 0, Math.PI * 2); ctx.fill();
+    }
+    for (const s of S.patches) {
+      ctx.globalAlpha = .55; ctx.fillStyle = A.patch === 'SAND' ? C.sand : C.slush;
+      ctx.beginPath(); for (let i = 0; i <= 18; i++) { const a = i / 18 * Math.PI * 2, rr = s.r * (1 + Math.sin(a * 3 + s.x) * .08); i ? ctx.lineTo(s.x + Math.cos(a) * rr, s.y + Math.sin(a) * rr) : ctx.moveTo(s.x + Math.cos(a) * rr, s.y + Math.sin(a) * rr); } ctx.fill();
+      ctx.globalAlpha = .7; ctx.fillStyle = A.ink; ctx.font = '800 9px Nunito, sans-serif'; ctx.textAlign = 'center'; ctx.fillText(A.patch || 'SLUSH', s.x, s.y + 3);
+      ctx.globalAlpha = 1;
+    }
+    for (const p of S.pockets) {
+      if (A.pocketStyle === 'lava') {
+        const g = ctx.createRadialGradient(p.x, p.y, 2, p.x, p.y, p.r + 6);
+        g.addColorStop(0, C.lavaHot); g.addColorStop(.6, C.lava); g.addColorStop(1, 'rgba(255,122,61,0)');
+        ctx.fillStyle = g; ctx.beginPath(); ctx.arc(p.x, p.y, p.r + 6, 0, Math.PI * 2); ctx.fill();
+        continue;
+      }
+      ctx.fillStyle = C.night; ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = A.pocketStyle === 'goal' ? C.pink : A.line; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(p.x, p.y, p.r + 1.5, 0, Math.PI * 2); ctx.stroke();
+      if (A.pocketStyle === 'knot') { ctx.lineWidth = 1.2; for (let i = 1; i < 3; i++) { ctx.beginPath(); ctx.ellipse(p.x, p.y, p.r + 4 + i * 4, p.r + 1 + i * 3, 0, 0, Math.PI * 2); ctx.stroke(); } }
+      ctx.fillStyle = 'rgba(255,255,255,.12)'; ctx.beginPath(); ctx.arc(p.x - 4, p.y - 4, p.r * .45, 0, Math.PI * 2); ctx.fill();
+    }
+    for (const b of S.bumpers) {
+      ctx.fillStyle = A.shadow; ctx.beginPath(); ctx.arc(b.x + 2, b.y + 3, b.r, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = b.flash > 0 ? C.gold : C.heavy; ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = A.decor === 'arcade' ? C.pink : C.gold; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(b.x, b.y, b.r - 3, 0, Math.PI * 2); ctx.stroke();
+      if (b.flash > 0) { ctx.globalAlpha = b.flash; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(b.x, b.y, b.r + 6 * (1 - b.flash) + 3, 0, Math.PI * 2); ctx.stroke(); ctx.globalAlpha = 1; }
+    }
+    ctx.globalAlpha = A.ink === C.frost ? .12 : .25; ctx.fillStyle = A.line; ctx.fillRect(0, ZONE_TOP, W, H - ZONE_TOP); ctx.globalAlpha = 1;
+    ctx.setLineDash([8, 6]); ctx.strokeStyle = C.tc[0]; ctx.globalAlpha = .7; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(0, ZONE_TOP); ctx.lineTo(W, ZONE_TOP); ctx.stroke();
+    ctx.setLineDash([]); ctx.globalAlpha = 1;
+  }
+  function colorOf(d) { return d.kind === 's' ? (d.type === 'heavy' ? C.heavy : C.striker) : d.gold ? C.gold : C.tc[d.col]; }
+  function drawTrail(d) {
+    const col = colorOf(d);
+    d.trail.forEach((p, i) => {
+      ctx.globalAlpha = (i + 1) / d.trail.length * .28;
+      ctx.fillStyle = col; ctx.beginPath(); ctx.arc(p.x, p.y, d.r * (.45 + .5 * (i + 1) / d.trail.length), 0, Math.PI * 2); ctx.fill();
+    });
+    ctx.globalAlpha = 1;
+  }
+  function drawDisc(d, x = d.x, y = d.y) {
+    const r = d.r, sq = 1 + (d.squash || 0) * .18;
+    const ghosting = d.type === 'ghost' && (d.phase > 0 || !d.launched);
+    ctx.fillStyle = S.theme.shadow; ctx.beginPath(); ctx.ellipse(x + 2, y + 4, r, r * .8, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.save(); ctx.translate(x, y); ctx.scale(sq, 2 - sq);
+    if (ghosting) ctx.globalAlpha = .5;
+    if (d.type === 'prism') {
+      const g = ctx.createConicGradient ? ctx.createConicGradient(d.rot, 0, 0) : null;
+      if (g) { [C.tc[0], C.gold, C.tc[2], C.rare, C.tc[1], C.tc[0]].forEach((c, i) => g.addColorStop(i / 5, c)); ctx.fillStyle = g; } else ctx.fillStyle = C.gold;
+    } else ctx.fillStyle = colorOf(d);
+    ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,.55)'; ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.arc(0, 0, r * .58, 0, Math.PI * 2); ctx.stroke();
+    if (d.type === 'heavy') { ctx.strokeStyle = 'rgba(14,26,43,.55)'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(0, 0, r * .82, 0, Math.PI * 2); ctx.stroke(); }
+    if (d.type === 'magnet') { ctx.strokeStyle = C.tc[0]; ctx.lineWidth = 3.5; ctx.beginPath(); ctx.arc(0, 0, r * .38, Math.PI * .15, Math.PI * .85, true); ctx.stroke(); }
+    if (d.type === 'bomb') { ctx.fillStyle = C.night; ctx.beginPath(); ctx.arc(0, 0, r * .42, 0, Math.PI * 2); ctx.fill(); if (d.armed && d.launched && (Math.floor(d.age) >> 3) % 2) { ctx.fillStyle = C.gold; ctx.beginPath(); ctx.arc(0, 0, r * .18, 0, Math.PI * 2); ctx.fill(); } }
+    if (d.type === 'comet') { ctx.strokeStyle = C.gold; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(0, 0, r - 1.5, 0, Math.PI * 2); ctx.stroke(); }
+    ctx.rotate(d.rot || 0);
+    if (d.type === 'splitter') { ctx.strokeStyle = C.night; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(-r * .8, 0); ctx.lineTo(r * .8, 0); if (d.up) { ctx.moveTo(0, 0); ctx.lineTo(0, r * .8); } ctx.stroke(); }
+    ctx.fillStyle = 'rgba(14,26,43,.35)'; ctx.fillRect(r * .62, -1.6, r * .3, 3.2);
+    ctx.restore();
+    ctx.fillStyle = 'rgba(255,255,255,.5)'; ctx.beginPath(); ctx.arc(x - r * .33, y - r * .4, r * .21, 0, Math.PI * 2); ctx.fill();
+    if (d.up) { ctx.fillStyle = C.gold; ctx.beginPath(); ctx.arc(x + r * .62, y - r * .62, 3.5, 0, Math.PI * 2); ctx.fill(); ctx.strokeStyle = C.night; ctx.lineWidth = 1.2; ctx.stroke(); }
+    if (d.maxHp > 1) {
+      ctx.strokeStyle = C.frost; ctx.lineWidth = 3; ctx.globalAlpha = .9;
+      ctx.beginPath(); ctx.arc(x, y, r - 1.5, 0, Math.PI * 2); ctx.stroke();
+      if (d.hp === 1) { ctx.strokeStyle = C.night; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.moveTo(x - r * .7, y - r * .2); ctx.lineTo(x - r * .1, y + r * .1); ctx.lineTo(x + r * .2, y - r * .4); ctx.lineTo(x + r * .7, y + r * .3); ctx.stroke(); }
+      ctx.globalAlpha = 1;
+    }
+    if (d.gold) { ctx.strokeStyle = C.night; ctx.globalAlpha = .4; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(x, y, r - 1, 0, Math.PI * 2); ctx.stroke(); ctx.globalAlpha = 1; }
+    if (d.flash > 0) { ctx.globalAlpha = d.flash; ctx.strokeStyle = C.gold; ctx.lineWidth = 4; ctx.beginPath(); ctx.arc(x, y, r + 3, 0, Math.PI * 2); ctx.stroke(); ctx.globalAlpha = 1; }
+  }
+  function drawPower(p, perfect, ink) {
+    const x0 = 10, y0 = H - 42, w = 120;
+    ctx.fillStyle = ink; ctx.globalAlpha = .2; ctx.fillRect(x0, y0, w, 9); ctx.globalAlpha = 1;
+    ctx.fillStyle = C.gold; ctx.globalAlpha = .5; ctx.fillRect(x0 + w * PERFECT[0], y0 - 3, w * (PERFECT[1] - PERFECT[0]), 15); ctx.globalAlpha = 1;
+    const inBand = p >= PERFECT[0] && p <= PERFECT[1];
+    ctx.fillStyle = inBand ? C.gold : p > PERFECT[1] ? C.tc[0] : C.paddle; ctx.fillRect(x0, y0, w * p, 9);
+    ctx.fillStyle = ink; ctx.globalAlpha = .75; ctx.font = '800 10px Nunito, sans-serif'; ctx.textAlign = 'left';
+    ctx.fillText(perfect ? 'PERFECT' : 'POWER', x0, y0 - 6); ctx.globalAlpha = 1;
+  }
+  function outlined(txt, x, y, size, fill, stroke = C.night) {
+    ctx.font = size + 'px "Lilita One", sans-serif'; ctx.lineWidth = 4; ctx.strokeStyle = stroke; ctx.fillStyle = fill;
+    ctx.strokeText(txt, x, y); ctx.fillText(txt, x, y);
+  }
+  function drawFog() {
+    const dark = S.theme.ink === C.frost;
+    fctx.globalCompositeOperation = 'source-over';
+    fctx.clearRect(0, 0, W, H);
+    fctx.fillStyle = dark ? 'rgba(40,48,62,.96)' : 'rgba(214,224,232,.96)';
+    fctx.fillRect(0, 0, W, ZONE_TOP);
+    fctx.globalCompositeOperation = 'destination-out';
+    const hole = (x, y, r) => { const g = fctx.createRadialGradient(x, y, r * .45, x, y, r); g.addColorStop(0, 'rgba(0,0,0,1)'); g.addColorStop(1, 'rgba(0,0,0,0)'); fctx.fillStyle = g; fctx.beginPath(); fctx.arc(x, y, r, 0, Math.PI * 2); fctx.fill(); };
+    for (const d of S.discs) { if (d.kind === 's') hole(d.x, d.y, 95); else if (d.flash > 0.05) hole(d.x, d.y, 40); }
+    fctx.globalCompositeOperation = 'source-over';
+    ctx.drawImage(fogCv, 0, 0, W, H);
+  }
+  function drawWeather(live) {
+    const w = S.weather;
+    const wx = w && w.wind ? w.wind.x : 0, wy = w && w.wind ? w.wind.y : 0;
+    ctx.fillStyle = '#fff'; ctx.globalAlpha = .75;
+    for (const f of S.flakes) {
+      f.y += (f.s + wy * .8) * live; f.x += (Math.sin(f.y * .03) * .3 + wx * 1.5) * live;
+      if (f.y > H) f.y -= H; if (f.y < 0) f.y += H; if (f.x > W) f.x -= W; if (f.x < 0) f.x += W;
+      ctx.beginPath(); ctx.arc(f.x, f.y, f.r, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.fillStyle = C.lavaHot; ctx.globalAlpha = .7;
+    for (const e of S.embers) {
+      e.y -= e.s * live; e.x += Math.sin(e.y * .05) * .3 * live; if (e.y < 0) { e.y = H; e.x = rnd(0, W); }
+      ctx.beginPath(); ctx.arc(e.x, e.y, e.r, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    if (w && w.wind) {
+      const gx = W - 34, gy = 34, a = Math.atan2(wy, wx);
+      ctx.fillStyle = C.night; ctx.globalAlpha = .55; ctx.beginPath(); ctx.arc(gx, gy, 20, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
+      ctx.save(); ctx.translate(gx, gy); ctx.rotate(a);
+      ctx.strokeStyle = C.frost; ctx.lineWidth = 3; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(-11, 0); ctx.lineTo(11, 0); ctx.moveTo(4, -6); ctx.lineTo(11, 0); ctx.lineTo(4, 6); ctx.stroke();
+      ctx.restore();
+      ctx.fillStyle = S.theme.ink; ctx.font = '800 9px Nunito, sans-serif'; ctx.textAlign = 'center'; ctx.fillText(w.name.toUpperCase(), gx, gy + 32);
+    }
+    if (w && w.id === 'snow' && S.frPenalty > 0) {
+      ctx.fillStyle = S.theme.ink; ctx.globalAlpha = .7; ctx.font = '800 10px Nunito, sans-serif'; ctx.textAlign = 'right';
+      ctx.fillText(`STICKY ICE +${Math.round(S.frPenalty / .002)}`, W - 12, 22); ctx.globalAlpha = 1;
+    }
+  }
+  function draw(ts) {
+    if (!S) return;
+    const A = S.theme, live = S.freeze ? 0 : ts;
+    ctx.save();
+    if (S.shake > 0) { ctx.translate((Math.random() - .5) * S.shake, (Math.random() - .5) * S.shake); if (!S.freeze) { S.shake *= .85; if (S.shake < .3) S.shake = 0; } }
+    drawRink();
+    for (const d of S.discs) drawTrail(d);
+    for (const d of S.discs) {
+      drawDisc(d);
+      d.flash = Math.max(0, d.flash - .06 * live); d.squash = Math.max(0, d.squash - .08 * live);
+    }
+    if (S.boom) {
+      S.boom.t += 1 / 60;
+      const k = S.boom.t / .4;
+      if (k < 1) { ctx.globalAlpha = 1 - k; ctx.strokeStyle = C.gold; ctx.lineWidth = 6 * (1 - k) + 1; ctx.beginPath(); ctx.arc(S.boom.x, S.boom.y, 20 + k * (S.boom.r - 15), 0, Math.PI * 2); ctx.stroke(); ctx.globalAlpha = 1; }
+      else S.boom = null;
+    }
+    for (const p of S.parts) {
+      p.t += live / 60; p.x += p.vx * live; p.y += p.vy * live; p.vx *= Math.pow(.9, live); p.vy *= Math.pow(.9, live);
+      ctx.globalAlpha = Math.max(0, 1 - p.t / p.life);
+      ctx.fillStyle = p.color; ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    S.parts = S.parts.filter(p => p.t < p.life);
+    if (S.weather && S.weather.id === 'fog') drawFog();
+    drawWeather(Math.max(live, .3));
+
+    const px = S.held ? S.held.x : S.aimX;
+    ctx.fillStyle = A.ink; ctx.globalAlpha = .18; ctx.fillRect(8, H - 15, W - 16, 4); ctx.globalAlpha = 1;
+    ctx.fillStyle = C.paddle;
+    ctx.beginPath(); ctx.roundRect ? ctx.roundRect(px - 30, H - 20, 60, 12, 6) : ctx.rect(px - 30, H - 20, 60, 12); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,.35)'; ctx.fillRect(px - 22, H - 18, 44, 3);
+
+    if (S.phase === 'aim' && S.used < S.hand.length) {
+      const card = S.hand[S.used], ghost = mkStriker(card, 0, 0);
+      if (S.held) {
+        const tr = S.held.trail, lc = curlOf(tr);
+        ctx.strokeStyle = lc ? C.gold : C.paddle; ctx.globalAlpha = .6; ctx.lineWidth = 3; ctx.lineCap = 'round';
+        ctx.beginPath(); tr.forEach((p, i) => i ? ctx.lineTo(clampX(p.x), clampY(p.y)) : ctx.moveTo(clampX(p.x), clampY(p.y))); ctx.stroke(); ctx.globalAlpha = 1;
+        drawDisc(ghost, S.held.x, S.held.y);
+        ctx.strokeStyle = C.gold; ctx.globalAlpha = .7; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(S.held.x, S.held.y, ghost.r + 5, 0, Math.PI * 2); ctx.stroke(); ctx.globalAlpha = 1;
+        { const lp = liveSpeed(tr) / MAXV; drawPower(lp, lp >= PERFECT[0] && lp <= PERFECT[1], A.ink); }
+        if (lc) { ctx.textAlign = 'center'; outlined(`curl ${lc > 0 ? '→' : '←'} ${Math.round(Math.abs(lc) * 100)}%`, S.held.x, S.held.y - ghost.r - 14, 15, C.gold); }
+      } else {
+        drawDisc(ghost, S.aimX, LAUNCH_Y);
+        ctx.fillStyle = A.ink; ctx.globalAlpha = .65; ctx.font = '800 12px Nunito, sans-serif'; ctx.textAlign = 'center';
+        ctx.fillText(`${sName(card)}  ·  flick ↑, swipe in a curve to curl`, clamp(S.aimX, 140, W - 140), LAUNCH_Y - ghost.r - 10); ctx.globalAlpha = 1;
+      }
+    }
+    if (S.pulse) {
+      S.pulse.t += 1 / 60; const k = S.pulse.t / .35;
+      if (k < 1) { ctx.globalAlpha = 1 - k; ctx.strokeStyle = C.tc[0]; ctx.lineWidth = 4; ctx.beginPath(); ctx.arc(S.pulse.x, S.pulse.y, S.pulse.r * (1 - k * .8), 0, Math.PI * 2); ctx.stroke(); ctx.globalAlpha = 1; } else S.pulse = null;
+    }
+    if (S.phase === 'roll' && S.active && !S.active.dead) {
+      const a = S.active;
+      if (S.touch && S.sweepE > 0) {
+        ctx.strokeStyle = S.sweeping ? C.gold : A.ink; ctx.globalAlpha = S.sweeping ? .8 : .3; ctx.lineWidth = 2; ctx.setLineDash([5, 5]);
+        ctx.beginPath(); ctx.arc(a.x, a.y, 110, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha = 1;
+      }
+      if (S.sweeping) { ctx.strokeStyle = C.gold; ctx.lineWidth = 3; ctx.lineCap = 'round'; for (let i = -1; i <= 1; i++) { ctx.beginPath(); ctx.moveTo(a.x + i * 8 - 6, a.y - a.r - 14); ctx.lineTo(a.x + i * 8 + 6, a.y - a.r - 6); ctx.stroke(); } }
+      // controls hint
+      const ab = (ABILITY[a.type] || ABILITY.basic)[0];
+      ctx.fillStyle = A.ink; ctx.globalAlpha = .7; ctx.font = '800 12px Nunito, sans-serif'; ctx.textAlign = 'center';
+      ctx.fillText(`${S.taps > 0 ? `Tap: ${ab}${S.taps > 1 ? ' ×' + S.taps : ''}` : 'Ability used'}  ·  Hold near: sweep  ·  ${S.nudges > 0 ? 'Swipe: nudge' : 'Nudge used'}`, W / 2, ZONE_TOP + 30); ctx.globalAlpha = 1;
+      if (S.nudgeFx) {
+        const n = S.nudgeFx; n.t += 1 / 60;
+        if (n.t < .4) { ctx.save(); ctx.translate(n.x, n.y); ctx.rotate(n.a); ctx.globalAlpha = 1 - n.t / .4; ctx.strokeStyle = C.rare; ctx.lineWidth = 4; ctx.lineCap = 'round';
+          const o = 20 + n.t * 60; ctx.beginPath(); ctx.moveTo(o, 0); ctx.lineTo(o + 22, 0); ctx.moveTo(o + 14, -8); ctx.lineTo(o + 22, 0); ctx.lineTo(o + 14, 8); ctx.stroke(); ctx.restore(); ctx.globalAlpha = 1; }
+        else S.nudgeFx = null;
+      }
+      // sweep meter
+      const m = Math.max(0, S.sweepE) / sweepMax();
+      ctx.fillStyle = A.ink; ctx.globalAlpha = .18; ctx.fillRect(W - 90, H - 40, 80, 6); ctx.globalAlpha = 1;
+      ctx.fillStyle = C.frost; ctx.fillRect(W - 90, H - 40, 80 * m, 6);
+      ctx.fillStyle = A.ink; ctx.globalAlpha = .75; ctx.font = '800 10px Nunito, sans-serif'; ctx.textAlign = 'right'; ctx.fillText('SWEEP', W - 94, H - 34); ctx.globalAlpha = 1;
+    }
+    if (S.phase === 'roll' && S.lastSpeed) {
+      drawPower(S.lastSpeed / MAXV, S.perfect, A.ink);
+      if (S.lastSpin) {
+        ctx.fillStyle = A.ink; ctx.globalAlpha = .75; ctx.font = '800 11px Nunito, sans-serif'; ctx.textAlign = 'left';
+        const style = P('late') ? 'late break' : P('snake') ? 'snake' : P('ricochet') ? 'ricochet' : P('boomerang') ? 'boomerang' : 'curl';
+        ctx.fillText(`${style} ${S.lastSpin > 0 ? '→' : '←'} ${Math.round(Math.abs(S.lastSpin) * 100)}%`, 96, H - 34); ctx.globalAlpha = 1;
+      }
+    }
+    if (S.slowK > 0.02) {
+      const bh = 22 * S.slowK;
+      ctx.fillStyle = C.night; ctx.globalAlpha = .85; ctx.fillRect(0, 0, W, bh); ctx.fillRect(0, H - bh, W, bh); ctx.globalAlpha = 1;
+      if (S.slowK > .6) { ctx.fillStyle = C.gold; ctx.font = '800 10px Nunito, sans-serif'; ctx.textAlign = 'left'; ctx.fillText('SLOW-MO', 12, bh - 7); }
+    }
+    if (S.phase === 'roll' && S.chain > 0) {
+      ctx.textAlign = 'left';
+      outlined(S.chain + ' chain', 12, 40 + S.slowK * 14, 22 + S.chainPulse * 10, S.chain >= 10 ? C.gold : C.frost);
+      S.chainPulse = Math.max(0, S.chainPulse - .08 * live);
+    }
+    ctx.textAlign = 'center';
+    for (const p of S.pops) {
+      p.t += Math.max(live, .5) / 60;
+      ctx.globalAlpha = Math.max(0, 1 - p.t / 1.2);
+      const y0 = p.y - 18 - p.t * 40, n = p.lines.length;
+      p.lines.forEach((ln, i) => {
+        const last = i === n - 1;
+        outlined(ln, p.x, y0 - (n - 1 - i) * 15, last ? (p.big ? 22 : 17) : 12, last ? (p.big ? C.gold : '#fff') : C.frost);
+      });
+    }
+    ctx.globalAlpha = 1;
+    S.pops = S.pops.filter(p => p.t < 1.2);
+    if (S.banner && S.banner.t > 0) {
+      S.banner.t -= 1 / 60;
+      ctx.globalAlpha = Math.min(1, S.banner.t * 1.5); ctx.textAlign = 'center';
+      ctx.font = '28px "Lilita One", sans-serif'; ctx.lineWidth = 6; ctx.strokeStyle = A.floor; ctx.fillStyle = A.ink;
+      ctx.strokeText(S.banner.text, W / 2, ZONE_TOP - 44); ctx.fillText(S.banner.text, W / 2, ZONE_TOP - 44);
+      ctx.font = '800 12px Nunito, sans-serif'; ctx.lineWidth = 4;
+      ctx.strokeText(S.banner.sub, W / 2, ZONE_TOP - 24); ctx.fillText(S.banner.sub, W / 2, ZONE_TOP - 24);
+      if (S.banner.sub2) { ctx.fillStyle = C.tc[0]; ctx.strokeText(S.banner.sub2, W / 2, ZONE_TOP - 8); ctx.fillText(S.banner.sub2, W / 2, ZONE_TOP - 8); }
+      ctx.globalAlpha = 1;
+    }
+    ctx.restore();
+  }
+
+  function loop() { const ts = step(); draw(ts); requestAnimationFrame(loop); }
+  function newRun() { freshRun(KITS[0]); renderPerks(); renderCoins(); newRound(); S.phase = 'idle'; S.banner = null; showKits(); }
+  // ---------- tap-to-inspect ----------
+  let infoTimer;
+  function hideInfo() { $('info').hidden = true; clearTimeout(infoTimer); }
+  function showInfo(k) {
+    const [kind, id] = k.split(':');
+    const curlLine = `Curl Shot: <b>×${P('curl') ? 2 : 1.5}</b> on every hit while your striker still spins`;
+    let title = '', tag = '', body = '', nums = [];
+    if (kind === 'perk') {
+      const p = perkById(id); title = p.name; tag = `${p.rarity} perk${p.group ? ' · curl style (one at a time)' : ''}`; body = p.desc; nums = (p.nums || []).slice();
+      if (p.group === 'curl' || id === 'curl') nums.push(curlLine);
+    } else if (kind === 'striker') {
+      const b = baseOf(id), s = STRIKERS[b], ab = ABILITY[b];
+      title = sName(id); tag = `${s.rarity} striker${isUp(id) ? ' · upgraded' : ''}`; body = isUp(id) ? `${s.desc} Upgrade: ${s.upDesc}` : s.desc;
+      nums.push(`Tap while rolling: <b>${ab[0]}</b>. ${ab[1]}`, 'Swipe while rolling: <b>Nudge</b> once per shot', 'Perfect release (gold band, <b>70–85%</b> power): first hit <b>×1.5</b>');
+      if (b === 'basic' && isUp(id)) nums.push('Bend <b>×1.8</b>', curlLine);
+      if (b === 'heavy') nums.push(`Mass <b>×${isUp(id) ? 3.5 : 2.5}</b>`);
+      if (b === 'comet') nums.push(`Every hit <b>×${isUp(id) ? 3 : 2}</b>`);
+      if (b === 'prism') nums.push(`Every <b>${isUp(id) ? 4 : 5}th</b> hit is a <b>×${P('fever') ? 15 : 10}</b> clash`);
+      if (!isUp(id)) nums.push(`Upgrades to <b>${s.up}</b>: ${s.upDesc}`);
+    } else if (kind === 'contract') {
+      const c = S.contracts[+id]; title = c.def.text(c.goal); tag = c.done ? 'contract · done' : 'contract'; body = 'Optional goal for this round.';
+      nums.push(`Reward: <b>${c.def.coins + (P('clerk') ? 2 : 0)}</b> coins${c.def.token ? ' and <b>1</b> upgrade token' : ''}`);
+      if (!['shot', 'full', 'chain'].includes(c.def.id)) nums.push(`Progress: <b>${Math.min(c.prog, c.goal)}/${c.goal}</b>`);
+    } else if (kind === 'weather') {
+      const w = S.weather; title = w.name; tag = 'weather'; body = w.desc; nums.push('Clearing a weather round pays <b>+2</b> coins');
+      if (P('storm')) nums.push('Storm Chaser: every hit <b>×1.5</b>');
+      if (w.id === 'snow') nums.push(`Stickiness now: <b>+${Math.round(S.frPenalty / .002)}</b>`);
+    }
+    $('infoTitle').textContent = title; $('infoTag').textContent = tag; $('infoBody').textContent = body;
+    $('infoNums').innerHTML = nums.map(n => `<li>${n}</li>`).join('');
+    $('info').hidden = false; clearTimeout(infoTimer); infoTimer = setTimeout(hideInfo, 7000);
+  }
+  document.querySelector('.cab').addEventListener('click', e => {
+    const el = e.target.closest('[data-k]');
+    if (el) { e.stopPropagation(); showInfo(el.dataset.k); return; }
+    if (!$('info').hidden && !e.target.closest('#info')) hideInfo();
+  });
+  document.querySelector('.cab').addEventListener('keydown', e => { const el = e.target.closest('[data-k]'); if (el && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); showInfo(el.dataset.k); } });
+  $('info').addEventListener('click', hideInfo);
+  $('again').addEventListener('click', newRun);
+  $('reset').addEventListener('click', newRun);
+  newRun(); fit();
+  (document.fonts ? document.fonts.ready : Promise.resolve()).then(() => requestAnimationFrame(loop));
+})();
+</script>
+
+</body></html>

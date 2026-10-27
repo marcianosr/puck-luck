@@ -13,7 +13,7 @@ import type { Game, GameEvent } from "@/sim/types";
 import { $, byId, closest } from "@/ui/dom";
 import {
 	renderCoins,
-	renderContracts,
+	renderBounties,
 	renderHand,
 	renderPerks,
 	renderRoundHeader,
@@ -51,8 +51,8 @@ function onGameEvent(event: GameEvent): void {
 			return renderScore(game, event.bump, reduceMotion);
 		case "coins":
 			return renderCoins(game);
-		case "contracts":
-			renderContracts(game);
+		case "bounties":
+			renderBounties(game);
 			runSheet.refreshBadge();
 			return;
 		case "hand":
@@ -66,7 +66,7 @@ function onGameEvent(event: GameEvent): void {
 			renderRoundHeader(game);
 			renderHand(game);
 			renderScore(game, false, reduceMotion);
-			renderContracts(game);
+			renderBounties(game);
 			runSheet.resetForRound();
 			return;
 		case "shop":

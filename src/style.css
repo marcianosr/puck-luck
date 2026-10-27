@@ -291,7 +291,7 @@ body {
 	);
 }
 .perks,
-.contracts {
+.bounties {
 	display: flex;
 	gap: 5px;
 	flex-wrap: wrap;

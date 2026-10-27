@@ -16,7 +16,7 @@ export function createRun(kit: Kit, rng: Rng): Run {
   return {
     kit, round: 1, total: 0, perks, mods: modifiersFor(perks), deck: [...kit.deck], coins: kit.coins, tokens: 0, carry: 0,
     lastFormation: '', handDelta: kit.handDelta ?? 0, themes: [FIRST_THEME, ...shuffle(rng, LATER_THEMES)],
-    maxChain: 0, clashes: 0, sunk: 0, bestShot: 0, contractsDone: 0,
+    maxChain: 0, clashes: 0, sunk: 0, bestShot: 0, bountiesDone: 0,
   };
 }
 

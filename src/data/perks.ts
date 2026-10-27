@@ -10,7 +10,7 @@ export interface Modifiers {
   extraTargets: number;
   roundBonusCoins: number;
   strikerScale: number;
-  contractBonusCoins: number;
+  bountyBonusCoins: number;
   clashMult: number;
   chainCap: number;
   goldTargets: number;
@@ -44,7 +44,7 @@ export const BASE_MODIFIERS: Readonly<Modifiers> = {
   extraTargets: 0,
   roundBonusCoins: 0,
   strikerScale: 1,
-  contractBonusCoins: 0,
+  bountyBonusCoins: 0,
   clashMult: 10,
   chainCap: 24,
   goldTargets: 0,
@@ -93,7 +93,7 @@ const PERK_DEFS = [
   { id: 'crowd', name: 'Packed Rink', rarity: 'common', mods: { extraTargets: 3 }, desc: m => `+${m.extraTargets} extra targets each round.` },
   { id: 'piggy', name: 'Piggy Bank', rarity: 'common', mods: { roundBonusCoins: 2 }, desc: m => `+${m.roundBonusCoins} coins after every round.` },
   { id: 'wide', name: 'Wide Strikers', rarity: 'common', mods: { strikerScale: 1.25 }, desc: m => `All strikers are ${percent(m.strikerScale - 1)}% bigger.` },
-  { id: 'clerk', name: 'Fine Print', rarity: 'common', mods: { contractBonusCoins: 2 }, desc: m => `Contracts pay +${m.contractBonusCoins} coins each.` },
+  { id: 'clerk', name: 'Fine Print', rarity: 'common', mods: { bountyBonusCoins: 2 }, desc: m => `Bounties pay +${m.bountyBonusCoins} coins each.` },
   {
     id: 'fever', name: 'Clash Fever', rarity: 'rare', mods: { clashMult: 15 },
     desc: m => `Clashes pay ×${m.clashMult} instead of ×${base.clashMult}.`,

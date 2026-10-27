@@ -1,4 +1,4 @@
-import type { ContractDef } from '@/data/contracts';
+import type { BountyDef } from '@/data/bounties';
 import type { Point } from '@/data/formations';
 import type { Kit } from '@/data/kits';
 import type { ColorKey, TargetColor } from '@/data/palette';
@@ -106,8 +106,8 @@ export interface ActiveWeather {
   wind: Point | null;
 }
 
-export interface Contract {
-  def: ContractDef;
+export interface Bounty {
+  def: BountyDef;
   goal: number;
   prog: number;
   done: boolean;
@@ -212,7 +212,7 @@ export interface Round {
   fullClear: boolean;
   windUsed: boolean;
   sunkCoins: number;
-  contracts: Contract[];
+  bounties: Bounty[];
   fx: Effects;
 }
 
@@ -233,13 +233,13 @@ export interface Run {
   clashes: number;
   sunk: number;
   bestShot: number;
-  contractsDone: number;
+  bountiesDone: number;
 }
 
 export type GameEvent =
   | { type: 'score'; bump: boolean }
   | { type: 'coins' }
-  | { type: 'contracts' }
+  | { type: 'bounties' }
   | { type: 'hand' }
   | { type: 'perks' }
   | { type: 'round' }

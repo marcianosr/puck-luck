@@ -48,7 +48,7 @@ export function showRunOver({ run, round }: Game): void {
   $('finalScore').textContent = formatNumber(run.total);
   $('stKit').textContent = run.kit.name;
   $('stRounds').textContent = String(run.round - 1);
-  $('stContracts').textContent = String(run.contractsDone);
+  $('stBounties').textContent = String(run.bountiesDone);
   $('stChain').textContent = String(run.maxChain);
   $('stClash').textContent = String(run.clashes);
   $('stShot').textContent = formatNumber(run.bestShot);

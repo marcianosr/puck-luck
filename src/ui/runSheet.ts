@@ -3,13 +3,13 @@ import { $ } from './dom';
 
 /**
  * Whether the Run button shows its "something new" dot.
- * `doneCount`: contracts completed this round. `seenCount`: how many were done when the sheet was last opened.
+ * `doneCount`: bounties completed this round. `seenCount`: how many were done when the sheet was last opened.
  */
 export function shouldShowBadge(doneCount: number, seenCount: number): boolean {
   return doneCount > seenCount;
 }
 
-const doneContracts = ({ round }: Game) => round.contracts.filter(c => c.done).length;
+const doneBounties = ({ round }: Game) => round.bounties.filter(c => c.done).length;
 
 export interface RunSheet {
   refreshBadge: () => void;
@@ -21,10 +21,10 @@ export function setupRunSheet(game: () => Game): RunSheet {
   let seenCount = 0;
 
   const refreshBadge = () => {
-    badge.hidden = !shouldShowBadge(doneContracts(game()), seenCount);
+    badge.hidden = !shouldShowBadge(doneBounties(game()), seenCount);
   };
   const open = () => {
-    seenCount = doneContracts(game());
+    seenCount = doneBounties(game());
     refreshBadge();
     overlay.hidden = false;
   };

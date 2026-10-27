@@ -2,7 +2,7 @@ import { PERFECT_BAND } from '@/data/constants';
 import { isPerkId, perkById } from '@/data/perks';
 import { baseOf, isCard, isUpgraded, STRIKERS, strikerName, type Card } from '@/data/strikers';
 import { WEATHER_CLEAR_COINS } from '@/data/weather';
-import { contractCoins } from '@/sim/contracts';
+import { bountyCoins } from '@/sim/bounties';
 import { grownModifiers, PERFECT_MULT } from '@/sim/scoring';
 import { abilityOf, buildOf, describeStriker, strikerNums } from '@/sim/strikers';
 import type { Game } from '@/sim/types';
@@ -45,12 +45,12 @@ function strikerInfo(game: Game, card: Card): InfoCard {
   return { title: strikerName(card), tag: `${s.rarity} striker${up ? ' · upgraded' : ''}`, body: describeStriker(id, up, mods), nums };
 }
 
-function contractInfo(game: Game, index: number): InfoCard | null {
-  const c = game.round.contracts[index];
+function bountyInfo(game: Game, index: number): InfoCard | null {
+  const c = game.round.bounties[index];
   if (!c) return null;
-  const nums = [`Reward: <b>${contractCoins(c.def, game.run.mods.contractBonusCoins)}</b> coins${c.def.token ? ' and <b>1</b> upgrade token' : ''}`];
+  const nums = [`Reward: <b>${bountyCoins(c.def, game.run.mods.bountyBonusCoins)}</b> coins${c.def.token ? ' and <b>1</b> upgrade token' : ''}`];
   if (!c.def.tracksRecord) nums.push(`Progress: <b>${Math.min(c.prog, c.goal)}/${c.goal}</b>`);
-  return { title: c.def.text(c.goal), tag: c.done ? 'contract · done' : 'contract', body: 'Optional goal for this round.', nums };
+  return { title: c.def.text(c.goal), tag: c.done ? 'bounty · done' : 'bounty', body: 'Optional goal for this round.', nums };
 }
 
 function weatherInfo(game: Game): InfoCard | null {
@@ -62,13 +62,13 @@ function weatherInfo(game: Game): InfoCard | null {
   return { title: w.name, tag: 'weather', body: w.desc, nums };
 }
 
-/** Resolves a `data-k` key like `perk:fever`, `striker:heavy+`, `contract:1` or `weather`. */
+/** Resolves a `data-k` key like `perk:fever`, `striker:heavy+`, `bounty:1` or `weather`. */
 export function infoFor(game: Game, key: string): InfoCard | null {
   const [kind = '', id = ''] = key.split(':');
   switch (kind) {
     case 'perk': return perkInfo(game, id);
     case 'striker': return isCard(id) ? strikerInfo(game, id) : null;
-    case 'contract': return contractInfo(game, Number(id));
+    case 'bounty': return bountyInfo(game, Number(id));
     case 'weather': return weatherInfo(game);
     default: return null;
   }

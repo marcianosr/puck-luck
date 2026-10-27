@@ -1,7 +1,7 @@
-import { progressContracts } from './contracts';
+import { progressBounties } from './bounties';
 import type { Game, Run } from './types';
 
-/** Something that happened during play. Contracts and run stats both read from this one log. */
+/** Something that happened during play. Bounties and run stats both read from this one log. */
 export type Play =
   | { type: 'link'; chain: number }
   | { type: 'shotPoints'; points: number }
@@ -25,5 +25,5 @@ function updateRunStats(run: Run, play: Play): void {
 
 export function record(game: Game, play: Play): void {
   updateRunStats(game.run, play);
-  progressContracts(game, play);
+  progressBounties(game, play);
 }

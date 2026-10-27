@@ -6,7 +6,7 @@ import { baseOf, isUpgraded, type Card } from '@/data/strikers';
 import { WEATHER, WEATHER_CHANCE, WEATHER_IDS } from '@/data/weather';
 import { formatNumber } from '@/lib/math';
 import { between, pick, shuffle, type Rng } from '@/lib/rng';
-import { layoutOf, rollContracts } from './contracts';
+import { layoutOf, rollBounties } from './bounties';
 import { behaviourOf, buildOf } from './strikers';
 import { emptyEffects } from './effects';
 import { actIndex, drawHand, quotaFor, themeFor } from './run';
@@ -87,7 +87,7 @@ function blankRound(game: GameCore): Round {
     hand: [], used: 0, score: run.carry, quota, quotaHit: run.carry >= quota,
     phase: 'aim', shot: null, freeze: 0, slowK: 0, frPenalty: 0,
     targetTotal: 0, touched: 0, fullClear: false, windUsed: false, sunkCoins: 0,
-    contracts: [], fx: emptyEffects(),
+    bounties: [], fx: emptyEffects(),
   };
 }
 
@@ -129,7 +129,7 @@ export function buildRound(game: GameCore): Round {
   };
   addAmbience(game, round);
   run.carry = 0;
-  round.contracts = rollContracts(rng, run.round, layoutOf(round));
+  round.bounties = rollBounties(rng, run.round, layoutOf(round));
   return round;
 }
 

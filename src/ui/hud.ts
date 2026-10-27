@@ -1,7 +1,7 @@
 import { PERKS } from '@/data/perks';
 import { baseOf, isUpgraded, strikerName } from '@/data/strikers';
 import { formatNumber } from '@/lib/math';
-import { contractCoins } from '@/sim/contracts';
+import { bountyCoins } from '@/sim/bounties';
 import type { Game } from '@/sim/types';
 import { $ } from './dom';
 
@@ -41,16 +41,16 @@ export function renderPerks({ run }: Game): void {
     : '<span class="chip none">No perks yet. Clear a round to visit the shop.</span>';
 }
 
-export function renderContracts({ round, run }: Game): void {
-  const contracts = round.contracts.map((k, i) => {
-    const reward = `${coinHtml}${contractCoins(k.def, run.mods.contractBonusCoins)}${k.def.token ? ` ${tokenHtml}1` : ''}`;
+export function renderBounties({ round, run }: Game): void {
+  const bounties = round.bounties.map((k, i) => {
+    const reward = `${coinHtml}${bountyCoins(k.def, run.mods.bountyBonusCoins)}${k.def.token ? ` ${tokenHtml}1` : ''}`;
     const progress = k.def.tracksRecord ? (k.done ? 'done' : '') : `${Math.min(k.prog, k.goal)}/${k.goal}`;
-    return `<span class="ct tapk${k.done ? ' done' : ''}" tabindex="0" role="button" data-k="contract:${i}">${k.def.text(k.goal)}${progress ? ` <span class="pg">${progress}</span>` : ''} ${reward}</span>`;
+    return `<span class="ct tapk${k.done ? ' done' : ''}" tabindex="0" role="button" data-k="bounty:${i}">${k.def.text(k.goal)}${progress ? ` <span class="pg">${progress}</span>` : ''} ${reward}</span>`;
   }).join('');
   const weather = round.weather
     ? `<span class="chip weather tapk" tabindex="0" role="button" data-k="weather">${round.weather.name}: ${round.weather.desc}</span>`
     : '';
-  $('contracts').innerHTML = contracts + weather;
+  $('bounties').innerHTML = bounties + weather;
 }
 
 export function renderRoundHeader({ round, run }: Game): void {

@@ -10,7 +10,8 @@
     "typecheck": "tsc -b",
     "lint": "eslint .",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "balance": "BALANCE_SEEDS=${SEEDS:-50} vitest run balance.report --silent=false --testTimeout=0"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

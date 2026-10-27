@@ -56,6 +56,8 @@ export interface StrikerBuild {
   chainMult: number;
   /** Every nth hit of its shot counts as a clash (Prism); 0 for none. */
   clashEvery: number;
+  /** Scales the clash multiplier of those Prism clashes (Spectrum). */
+  prismMult: number;
 }
 
 /** What render needs to know about a striker's private state. */
@@ -176,6 +178,7 @@ export interface Shot {
   chainMult: number;
   /** Every nth hit counts as a clash (Prism); 0 for none. */
   clashEvery: number;
+  prismMult: number;
   launchSpeed: number;
   launchSpin: number;
   /** Slow-mo ticks left from a clash or full clear. */

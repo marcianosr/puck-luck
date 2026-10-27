@@ -41,6 +41,8 @@ export function chainValue(
 export interface HitBonuses {
 	clash: boolean;
 	prism: boolean;
+	/** Scales the clash multiplier of a Prism hit (Spectrum). */
+	prismMult: number;
 	banked: boolean;
 	curled: boolean;
 	gold: boolean;
@@ -59,8 +61,9 @@ export function scoreHit(
 	const tags = [...extraTags];
 	if (bonus.prism) tags.push("Prism");
 	if (bonus.clash || bonus.prism) {
-		points *= mods.clashMult;
-		tags.push(`Clash ×${mods.clashMult}`);
+		const clashMult = bonus.prism ? Math.round(mods.clashMult * bonus.prismMult) : mods.clashMult;
+		points *= clashMult;
+		tags.push(`Clash ×${clashMult}`);
 	}
 	if (bonus.banked) {
 		points *= mods.bankMult;
@@ -221,6 +224,7 @@ export function hit(
 	const bonus: HitBonuses = {
 		clash,
 		prism,
+		prismMult: shot.prismMult,
 		banked: !!striker?.banked,
 		curled:
 			!!striker?.launched && Math.abs(striker.spin) > CURL_SHOT_MIN_SPIN,

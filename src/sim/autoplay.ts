@@ -1,17 +1,24 @@
 import { LAUNCH_Y, MAXV, PERFECT_BAND, R, W } from '@/data/constants';
 import type { Kit } from '@/data/kits';
-import { isUpgraded } from '@/data/strikers';
-import { launch, type Flick } from './actions';
+import { isUpgraded, type StrikerType } from '@/data/strikers';
+import { launch, useAbility, type Flick } from './actions';
 import { advanceEffects } from './effects';
 import { createGame, nextRound, startRun } from './game';
 import { step } from './physics';
 import { buyPerk, buyStriker, perkPrice, strikerPrice, upgradeCard } from './shop';
-import type { Game, Target } from './types';
+import type { Game, Point, Target } from './types';
 
-/** A headless player: how it flicks, and what it buys between rounds. */
+/** What a bot does with its finger during one tick of a rolling shot. */
+export interface Steering {
+  sweep: Point | null;
+  tap: boolean;
+}
+
+/** A headless player: where it flicks, how it steers the rolling striker, and what it buys between rounds. */
 export interface Bot {
   name: string;
-  aim: (game: Game) => Flick;
+  aim: (game: Game) => Point;
+  steer?: (game: Game, aimedAt: Point) => Steering;
   shop: (game: Game) => void;
 }
 
@@ -33,6 +40,9 @@ const CLUSTER_RADIUS = R * 4;
 // The middle of the Perfect band, so every bot flick gets the Perfect bonus a practised player would.
 const PERFECT_SPEED = ((PERFECT_BAND.min + PERFECT_BAND.max) / 2) * MAXV;
 const LAUNCH_X = W / 2;
+const HANDS_OFF: Steering = { sweep: null, tap: false };
+// Abilities that pay off inside a pack; Brake and Anchor only cost momentum there.
+const TAPS_IN_PACK: ReadonlySet<StrikerType> = new Set(['splitter', 'magnet', 'bomb']);
 
 const isLiveTarget = (d: Game['round']['discs'][number]): d is Target => d.kind === 'target' && !d.dead;
 
@@ -41,17 +51,25 @@ function flickToward(x: number, y: number): Flick {
   return { x: LAUNCH_X, y: LAUNCH_Y, vx: (dx / len) * PERFECT_SPEED, vy: (dy / len) * PERFECT_SPEED, rawSpeed: PERFECT_SPEED, spin: 0 };
 }
 
-export const aimStraightUp = (): Flick => flickToward(LAUNCH_X, 0);
+export const aimStraightUp = (): Point => ({ x: LAUNCH_X, y: 0 });
 
 /** Aims at the live target with the most live neighbours: a greedy stand-in for reading the rink. */
-export function aimAtDensestCluster(game: Game): Flick {
+export function aimAtDensestCluster(game: Game): Point {
   const targets = game.round.discs.filter(isLiveTarget);
   const neighbours = (t: Target) => targets.filter(o => Math.hypot(o.x - t.x, o.y - t.y) < CLUSTER_RADIUS).length;
   const best = targets.reduce<{ t: Target; n: number } | null>((acc, t) => {
     const n = neighbours(t);
     return !acc || n > acc.n ? { t, n } : acc;
   }, null);
-  return best ? flickToward(best.t.x, best.t.y) : aimStraightUp();
+  return best ? { x: best.t.x, y: best.t.y } : aimStraightUp();
+}
+
+/** Sweeps the striker until it reaches the pack, then taps its ability if that helps in a pack. */
+export function sweepToPackThenTap(game: Game, aimedAt: Point): Steering {
+  const striker = game.round.shot?.striker;
+  if (!striker || striker.dead) return HANDS_OFF;
+  const inPack = Math.hypot(aimedAt.x - striker.x, aimedAt.y - striker.y) < CLUSTER_RADIUS;
+  return { sweep: inPack ? null : striker, tap: inPack && TAPS_IN_PACK.has(striker.type) };
 }
 
 /** Buys the priciest perks it can afford, then strikers, then spends tokens on upgrades. */
@@ -69,13 +87,17 @@ export function shopGreedily(game: Game): void {
 export const BOTS = {
   straight: { name: 'straight', aim: aimStraightUp, shop: shopGreedily },
   cluster: { name: 'cluster', aim: aimAtDensestCluster, shop: shopGreedily },
+  skilled: { name: 'skilled', aim: aimAtDensestCluster, steer: sweepToPackThenTap, shop: shopGreedily },
 } as const satisfies Record<string, Bot>;
 
-function playShot(game: Game, flick: Flick): void {
-  if (!launch(game, flick)) return;
+function playShot(game: Game, bot: Bot): void {
+  const aimedAt = bot.aim(game);
+  if (!launch(game, flickToward(aimedAt.x, aimedAt.y))) return;
   for (let t = 0; game.round.phase === 'roll'; t++) {
     if (t >= MAX_TICKS_PER_SHOT) throw new Error(`Shot never settled (seed ${game.seed}, round ${game.run.round})`);
-    advanceEffects(game, step(game, null));
+    const { sweep, tap } = bot.steer?.(game, aimedAt) ?? HANDS_OFF;
+    if (tap) useAbility(game);
+    advanceEffects(game, step(game, sweep));
   }
 }
 
@@ -85,7 +107,7 @@ export function playRun(kit: Kit, seed: number, bot: Bot, maxRounds = DEFAULT_MA
   startRun(game, kit, seed);
   const ratios: number[] = [];
   while (ratios.length < maxRounds) {
-    while (game.round.phase === 'aim') playShot(game, bot.aim(game));
+    while (game.round.phase === 'aim') playShot(game, bot);
     ratios.push(game.round.score / game.round.quota);
     if (game.runPhase !== 'shop') break;
     bot.shop(game);

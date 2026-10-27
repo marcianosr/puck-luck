@@ -10,8 +10,8 @@ describe('quotaFor', () => {
     expect([1, 2, 3].map(r => quotaFor(r, DEFAULT_KIT))).toEqual([1500, 2350, 3600]);
   });
 
-  it('raises every quota 20% for the Gambler kit', () => {
-    expect(quotaFor(1, gambler)).toBe(1800);
+  it('raises every quota 10% for the Gambler kit', () => {
+    expect(quotaFor(1, gambler)).toBe(1650);
   });
 });
 

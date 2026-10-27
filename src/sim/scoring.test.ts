@@ -12,6 +12,7 @@ const plain = { chain: 1, shotMult: 1, inWeather: false };
 const noBonus: HitBonuses = {
 	clash: false,
 	prism: false,
+	prismMult: 1,
 	banked: false,
 	curled: false,
 	gold: false,
@@ -82,6 +83,18 @@ describe("scoreHit", () => {
 		expect(
 			scoreHit(15, { ...noBonus, curled: true }, BASE_MODIFIERS).points,
 		).toBe(23);
+	});
+
+	it("scales a Spectrum hit's clash multiplier by its prism multiplier", () => {
+		expect(
+			scoreHit(10, { ...noBonus, prism: true, prismMult: 1.5 }, BASE_MODIFIERS),
+		).toEqual({ points: 150, tags: ["Prism", "Clash ×15"] });
+	});
+
+	it("leaves a striker clash unscaled by the prism multiplier", () => {
+		expect(
+			scoreHit(10, { ...noBonus, clash: true, prismMult: 1.5 }, BASE_MODIFIERS).points,
+		).toBe(100);
 	});
 
 	it("treats a Prism hit as a clash and tags it as Prism first", () => {

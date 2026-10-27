@@ -115,6 +115,21 @@ describe('Magnet', () => {
     useAbility(game);
     expect(t.vx).toBeLessThan(0);
   });
+
+  it('pulls nearby targets while it slides', () => {
+    const { game, striker } = launched('magnet+');
+    const t = addTarget(game, striker.x + 80, striker.y);
+    striker.behaviour.onSubstep?.(game, striker, 1, 4);
+    expect(t.vx).toBeLessThan(0);
+  });
+
+  it('stops pulling once it has slid for longer than a normal shot', () => {
+    const { game, striker } = launched('magnet+');
+    const t = addTarget(game, striker.x + 80, striker.y);
+    striker.age = 10_000;
+    striker.behaviour.onSubstep?.(game, striker, 1, 4);
+    expect(t.vx).toBe(0);
+  });
 });
 
 describe('Comet', () => {
@@ -126,8 +141,16 @@ describe('Comet', () => {
 });
 
 describe('Prism', () => {
-  it('turns every 5th hit into a clash, every 4th once upgraded', () => {
-    expect([buildOf('prism', false).clashEvery, buildOf('prism', true).clashEvery]).toEqual([5, 4]);
+  it('turns every 5th hit into a clash, upgraded or not', () => {
+    expect([buildOf('prism', false).clashEvery, buildOf('prism', true).clashEvery]).toEqual([5, 5]);
+  });
+
+  it('makes its clashes 1.5× stronger once upgraded', () => {
+    expect([buildOf('prism', false).prismMult, buildOf('prism', true).prismMult]).toEqual([1, 1.5]);
+  });
+
+  it('quotes the upgraded clash multiplier', () => {
+    expect(describeStriker('prism', true, BASE_MODIFIERS)).toContain('×15');
   });
 
   it('quotes the clash multiplier the run really has', () => {

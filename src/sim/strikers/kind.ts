@@ -23,7 +23,7 @@ export interface StrikerKind {
   behave?: (up: boolean) => Partial<StrikerBehaviour>;
 }
 
-export const PLAIN_BUILD: StrikerBuild = { radiusMult: 1, massMult: 1, curlMult: 1, breaker: false, chainMult: 1, clashEvery: 0 };
+export const PLAIN_BUILD: StrikerBuild = { radiusMult: 1, massMult: 1, curlMult: 1, breaker: false, chainMult: 1, clashEvery: 0, prismMult: 1 };
 
 export const PLAIN_LOOK: Look = { translucent: false, fuseLit: false };
 

@@ -45,7 +45,7 @@ export function launch(game: Game, flick: Flick): Striker | null {
   round.shot = {
     striker: d, chain: mods.startChain, points: 0, sweepLeft: sweepTicks(mods), sweeping: false,
     taps: mods.abilityTaps, nudges: 1, perfect, perfectHits: perfect ? (mods.perfectAllHits ? PERFECT_SHOT_ALL_HITS : 1) : 0,
-    chainMult: d.build.chainMult, clashEvery: d.build.clashEvery,
+    chainMult: d.build.chainMult, clashEvery: d.build.clashEvery, prismMult: d.build.prismMult,
     launchSpeed: Math.min(flick.rawSpeed, MAXV), launchSpin: flick.spin,
     slowT: 0, slowLock: 0, slowUsed: false,
   } satisfies Shot;

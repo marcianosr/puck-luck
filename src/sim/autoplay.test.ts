@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_KIT } from '@/data/kits';
-import { aimAtDensestCluster, aimStraightUp, BOTS, percentile, playRun } from './autoplay';
+import { aimAtDensestCluster, aimStraightUp, BOTS, percentile, playRun, sweepToPackThenTap } from './autoplay';
 import { createGame, startRun } from './game';
 
 describe('playRun', () => {
@@ -22,20 +22,24 @@ describe('playRun', () => {
 });
 
 describe('bots', () => {
-  it('flicks straight up from the middle of the launch zone', () => {
-    const flick = aimStraightUp();
-    expect(flick.vx).toBe(0);
-    expect(flick.vy).toBeLessThan(0);
+  const freshGame = () => {
+    const game = createGame({ seed: 1 });
+    startRun(game, DEFAULT_KIT, 1);
+    return game;
+  };
+
+  it('aims the straight bot at the top wall above the launch spot', () => {
+    expect(aimStraightUp()).toEqual({ x: 200, y: 0 });
   });
 
   it('aims the cluster bot at a live target', () => {
-    const game = createGame({ seed: 1 });
-    startRun(game, DEFAULT_KIT, 1);
-    const flick = aimAtDensestCluster(game);
-    const distanceFromAimLine = (x: number, y: number) =>
-      Math.abs(flick.vx * (y - flick.y) - flick.vy * (x - flick.x)) / Math.hypot(flick.vx, flick.vy);
-    const hitsSomeTarget = game.round.discs.some(d => distanceFromAimLine(d.x, d.y) < 1);
-    expect(hitsSomeTarget).toBe(true);
+    const game = freshGame();
+    const at = aimAtDensestCluster(game);
+    expect(game.round.discs.some(d => d.kind === 'target' && d.x === at.x && d.y === at.y)).toBe(true);
+  });
+
+  it('keeps hands off when no striker is rolling', () => {
+    expect(sweepToPackThenTap(freshGame(), { x: 200, y: 100 })).toEqual({ sweep: null, tap: false });
   });
 });
 

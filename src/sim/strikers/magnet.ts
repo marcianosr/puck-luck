@@ -2,6 +2,8 @@ import type { Disc } from '../types';
 import type { StrikerKind } from './kind';
 
 const MIN_PULL_SPEED = 0.5;
+// About one normal shot. Without a limit, pulled targets keep knocking the magnet above MIN_PULL_SPEED and the shot never ends.
+const PULL_TICKS = 240;
 const PULSE_REACH = 1.6;
 const PULSE_STRENGTH = 4.5;
 const pull = (up: boolean) => (up ? { radius: 160, strength: 0.22 } : { radius: 100, strength: 0.14 });
@@ -20,13 +22,13 @@ function drawTargetsIn(discs: readonly Disc[], from: Disc, radius: number, stren
 
 export const magnet: StrikerKind = {
   ability: { name: 'Pulse', desc: 'One strong pull on every target nearby.' },
-  describe: up => (up ? 'Pulls from further, and harder.' : 'Pulls nearby targets in while it slides.'),
+  describe: up => (up ? 'Pulls from further, and harder.' : 'Pulls nearby targets in for its first few seconds on the ice.'),
   nums: up => [`Pull reach <b>${pull(up).radius}</b>`],
   behave: up => {
     const { radius, strength } = pull(up);
     return {
       onSubstep: (game, self, f, speed) => {
-        if (speed > MIN_PULL_SPEED) drawTargetsIn(game.round.discs, self, radius, strength * f, t => self.r + t.r);
+        if (speed > MIN_PULL_SPEED && self.age < PULL_TICKS) drawTargetsIn(game.round.discs, self, radius, strength * f, t => self.r + t.r);
       },
       ability: (game, self) => {
         const reach = radius * PULSE_REACH;

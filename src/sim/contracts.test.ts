@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { CONTRACTS, type ContractId } from '@/data/contracts';
 import { createRng } from '@/lib/rng';
-import { progressContract, rollContracts } from './contracts';
+import { rollContracts } from './contracts';
 import { createGame } from './game';
+import { record } from './playLog';
 import { addPerk } from './run';
 import type { Game, GameEvent } from './types';
 
@@ -16,13 +17,13 @@ function gameWithContract(id: ContractId, goal: number): { game: Game; events: G
   return { game, events };
 }
 
-describe('progressContract', () => {
+describe('contract progress from the play log', () => {
   it('counts up and pays out once on reaching the goal', () => {
     const { game } = gameWithContract('bank', 2);
-    progressContract(game, 'bank');
+    record(game, { type: 'bank' });
     expect(game.run.coins).toBe(0);
-    progressContract(game, 'bank');
-    progressContract(game, 'bank');
+    record(game, { type: 'bank' });
+    record(game, { type: 'bank' });
     expect(game.round.contracts[0]?.done).toBe(true);
     expect(game.run.coins).toBe(3);
     expect(game.run.contractsDone).toBe(1);
@@ -30,21 +31,21 @@ describe('progressContract', () => {
 
   it('keeps the best value for record contracts instead of summing', () => {
     const { game } = gameWithContract('chain', 9);
-    progressContract(game, 'chain', 5, true);
-    progressContract(game, 'chain', 3, true);
+    record(game, { type: 'link', chain: 5 });
+    record(game, { type: 'link', chain: 3 });
     expect(game.round.contracts[0]?.prog).toBe(5);
   });
 
   it('pays the Fine Print bonus and the upgrade token', () => {
     const { game } = gameWithContract('full', 1);
     addPerk(game.run, 'clerk');
-    progressContract(game, 'full');
+    record(game, { type: 'fullClear' });
     expect([game.run.coins, game.run.tokens]).toEqual([5, 1]);
   });
 
   it('ignores progress for contracts that are not in play', () => {
     const { game, events } = gameWithContract('bank', 2);
-    progressContract(game, 'sink');
+    record(game, { type: 'sink' });
     expect(events).toEqual([]);
   });
 });

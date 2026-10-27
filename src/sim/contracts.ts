@@ -1,6 +1,7 @@
-import { CONTRACTS, CONTRACTS_PER_ROUND, type ContractDef, type ContractId, type RinkLayout } from '@/data/contracts';
+import { CONTRACTS, CONTRACTS_PER_ROUND, type ContractDef, type RinkLayout } from '@/data/contracts';
 import { shuffle, type Rng } from '@/lib/rng';
 import { showBanner } from './effects';
+import type { Play } from './playLog';
 import { actIndex } from './run';
 import type { Contract, Game, Round } from './types';
 
@@ -19,14 +20,15 @@ export function rollContracts(rng: Rng, roundNumber: number, layout: RinkLayout)
 
 export const contractCoins = (def: ContractDef, bonus: number): number => def.coins + bonus;
 
-/** Adds `amount` to matching contracts, or with `asRecord` keeps the best value seen (longest chain, best shot). */
-export function progressContract(game: Game, id: ContractId, amount = 1, asRecord = false): void {
+/** Moves every open contract by what `play` is worth to it; record contracts keep the best value seen. */
+export function progressContracts(game: Game, play: Play): void {
   const { run, round } = game;
   let changed = false;
   for (const k of round.contracts) {
-    if (k.done || k.def.id !== id) continue;
+    const amount = k.def.progress(play);
+    if (k.done || !amount) continue;
     const before = k.prog;
-    k.prog = asRecord ? Math.max(k.prog, amount) : k.prog + amount;
+    k.prog = k.def.tracksRecord ? Math.max(k.prog, amount) : k.prog + amount;
     if (k.prog !== before) changed = true;
     if (k.prog < k.goal) continue;
     k.done = true;

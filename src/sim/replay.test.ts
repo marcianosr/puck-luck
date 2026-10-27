@@ -1,22 +1,22 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_KIT } from '@/data/kits';
-import { launch, type Shot } from './actions';
+import { launch, type Flick } from './actions';
 import { advanceEffects } from './effects';
 import { createGame, startRun } from './game';
 import { step } from './physics';
 import type { Game } from './types';
 
 const MAX_TICKS = 60 * 60;
-const STRAIGHT_UP: Shot = { x: 200, y: 620, vx: 0.4, vy: -16, rawSpeed: 16, spin: 0 };
-const CURLED: Shot = { ...STRAIGHT_UP, vx: -1, spin: 0.6 };
+const STRAIGHT_UP: Flick = { x: 200, y: 620, vx: 0.4, vy: -16, rawSpeed: 16, spin: 0 };
+const CURLED: Flick = { ...STRAIGHT_UP, vx: -1, spin: 0.6 };
 
 /** Plays every striker in the hand with the given shots, headless, and returns the finished game. */
-function playRound(seed: number, shots: Shot[]): Game {
+function playRound(seed: number, shots: Flick[]): Game {
   const game = createGame({ seed });
   startRun(game, DEFAULT_KIT, seed);
   for (const shot of shots) {
     if (!launch(game, shot)) break;
-    for (let t = 0; t < MAX_TICKS && game.round.phase === 'roll'; t++) advanceEffects(game, step(game, 0));
+    for (let t = 0; t < MAX_TICKS && game.round.phase === 'roll'; t++) advanceEffects(game, step(game, null));
   }
   return game;
 }

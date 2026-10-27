@@ -1,8 +1,10 @@
 import { PERFECT_BAND } from '@/data/constants';
 import { isPerkId, perkById } from '@/data/perks';
-import { ABILITY, baseOf, isCard, isUpgraded, STRIKERS, strikerName, type Card } from '@/data/strikers';
+import { baseOf, isCard, isUpgraded, STRIKERS, strikerName, type Card } from '@/data/strikers';
 import { WEATHER_CLEAR_COINS } from '@/data/weather';
 import { contractCoins } from '@/sim/contracts';
+import { grownModifiers, PERFECT_MULT } from '@/sim/scoring';
+import { abilityOf, buildOf, describeStriker, strikerNums } from '@/sim/strikers';
 import type { Game } from '@/sim/types';
 import { $ } from './dom';
 
@@ -30,18 +32,17 @@ function perkInfo(game: Game, id: string): InfoCard | null {
 }
 
 function strikerInfo(game: Game, card: Card): InfoCard {
-  const id = baseOf(card), s = STRIKERS[id], ability = ABILITY[id], up = isUpgraded(card), mods = game.run.mods;
+  const id = baseOf(card), s = STRIKERS[id], ability = abilityOf(id), up = isUpgraded(card);
+  const mods = grownModifiers(game.run.mods, game.run);
   const nums = [
     `Tap while rolling: <b>${ability.name}</b>. ${ability.desc}`,
     'Swipe while rolling: <b>Nudge</b> once per shot',
-    `Perfect release (gold band, <b>${percent(PERFECT_BAND.min)}–${percent(PERFECT_BAND.max)}%</b> power): first hit <b>×1.5</b>`,
+    `Perfect release (gold band, <b>${percent(PERFECT_BAND.min)}–${percent(PERFECT_BAND.max)}%</b> power): first hit <b>×${PERFECT_MULT}</b>`,
+    ...strikerNums(id, up, mods),
   ];
-  if (id === 'basic' && up) nums.push('Bend <b>×1.8</b>', curlShotLine(game));
-  if (id === 'heavy') nums.push(`Mass <b>×${up ? 3.5 : 2.5}</b>`);
-  if (id === 'comet') nums.push(`Every hit <b>×${up ? 3 : 2}</b>`);
-  if (id === 'prism') nums.push(`Every <b>${up ? 4 : 5}th</b> hit is a <b>×${mods.clashMult}</b> clash`);
-  if (!up) nums.push(`Upgrades to <b>${s.up}</b>: ${s.upDesc}`);
-  return { title: strikerName(card), tag: `${s.rarity} striker${up ? ' · upgraded' : ''}`, body: up ? `${s.desc} Upgrade: ${s.upDesc}` : s.desc, nums };
+  if (buildOf(id, up).curlMult > 1) nums.push(curlShotLine(game));
+  if (!up) nums.push(`Upgrades to <b>${s.up}</b>: ${describeStriker(id, true, mods)}`);
+  return { title: strikerName(card), tag: `${s.rarity} striker${up ? ' · upgraded' : ''}`, body: describeStriker(id, up, mods), nums };
 }
 
 function contractInfo(game: Game, index: number): InfoCard | null {

@@ -7,7 +7,7 @@ import { fitCanvas } from "@/render/canvas";
 import { drawFrame } from "@/render/frame";
 import { cssPalette } from "@/render/paint";
 import { advanceEffects } from "@/sim/effects";
-import { createGame, nextRound, parkForKitPick, startRun } from "@/sim/game";
+import { createGame, parkForKitPick, startRun } from "@/sim/game";
 import { step } from "@/sim/physics";
 import type { Game, GameEvent } from "@/sim/types";
 import { $, byId, closest } from "@/ui/dom";
@@ -38,15 +38,12 @@ const seedForRun = () => fixedSeed ?? randomSeed();
 const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
 const settings = setupSettings();
 const runSheet = setupRunSheet(() => game);
-const shop = createShopView({
-	game: () => game,
-	buzz: settings.buzz,
-	onChange: () => {
-		renderCoins(game);
-		renderPerks(game);
-	},
-	onNextRound: () => nextRound(game),
-});
+const shop = createShopView(() => game);
+
+function showRunPhase(): void {
+	if (game.runPhase === "shop") shop.open();
+	if (game.runPhase === "over") showRunOver(game);
+}
 
 function onGameEvent(event: GameEvent): void {
 	switch (event.type) {
@@ -72,11 +69,11 @@ function onGameEvent(event: GameEvent): void {
 			renderContracts(game);
 			runSheet.resetForRound();
 			return;
-		case "shotsDone":
-			setTimeout(
-				() => (event.cleared ? shop.open() : showRunOver(game)),
-				RESULT_DELAY_MS,
-			);
+		case "shop":
+			return shop.refresh();
+		case "runPhase":
+			// Let the last shot's effects land before covering the rink.
+			setTimeout(showRunPhase, RESULT_DELAY_MS);
 	}
 }
 
@@ -108,7 +105,7 @@ const fogCtx = context2d(fogCanvas);
 const scale = fitCanvas(canvas, $("stage"), ctx);
 const paint = { ctx, color: cssPalette() };
 
-attachPointer(canvas, {
+const pointer = attachPointer(canvas, {
 	game: () => game,
 	gain: settings.gain,
 	scale,
@@ -150,9 +147,11 @@ function frame(now: number): void {
 	const due = advanceClock(carry, now - last, TICK_MS, MAX_CATCH_UP_TICKS);
 	carry = due.carry;
 	last = now;
-	for (let i = 0; i < due.ticks; i++) advanceEffects(game, step(game, now));
+	const sweep = pointer.sweepPoint(now);
+	for (let i = 0; i < due.ticks; i++) advanceEffects(game, step(game, sweep));
 	drawFrame(paint, fogCtx, game, {
 		gain: settings.gain(),
+		pointer: pointer.view(),
 		seconds: now / 1000,
 		random: Math.random,
 	});

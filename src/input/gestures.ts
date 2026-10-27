@@ -1,7 +1,11 @@
 import { MAXV } from '@/data/constants';
 import { clamp } from '@/lib/math';
-import type { Shot } from '@/sim/actions';
-import type { Point, TracePoint } from '@/sim/types';
+import type { Flick } from '@/sim/actions';
+import type { Point } from '@/sim/types';
+
+export interface TracePoint extends Point {
+  t: number;
+}
 
 /** Converts px/ms into px per 60 Hz tick, the unit the physics runs in. */
 const MS_PER_TICK = 16.7;
@@ -61,8 +65,8 @@ export function liveSpeed(trail: readonly TracePoint[], gain: number): number {
   return Math.min(MAXV, Math.hypot(v.vx, v.vy));
 }
 
-/** Turns a finished swipe into a shot, or null when it was too slow or not upward. */
-export function readFlick(trail: readonly TracePoint[], gain: number, from: Point): Shot | null {
+/** Turns a finished swipe into a flick, or null when it was too slow or not upward. */
+export function readFlick(trail: readonly TracePoint[], gain: number, from: Point): Flick | null {
   const v = recentVelocity(trail, gain);
   if (!v) return null;
   const rawSpeed = Math.hypot(v.vx, v.vy);

@@ -38,7 +38,7 @@ function drawStrikerMarks({ ctx, color }: Paint, d: Disc, r: number): void {
     circle(ctx, 0, 0, r * 0.42);
     ctx.fill();
     const fuseBlink = (Math.floor(d.age) >> 3) % 2;
-    if (d.bomb?.armed && d.launched && fuseBlink) {
+    if (d.behaviour.look(d).fuseLit && fuseBlink) {
       ctx.fillStyle = color('gold');
       circle(ctx, 0, 0, r * 0.18);
       ctx.fill();
@@ -59,7 +59,7 @@ function discFill({ ctx, color }: Paint, d: Disc): string | CanvasGradient {
   return g;
 }
 
-const isGhosting = (d: Disc): boolean => d.kind === 'striker' && !!d.ghost && (d.ghost.phasesLeft > 0 || !d.launched);
+const isTranslucent = (d: Disc): boolean => d.kind === 'striker' && d.behaviour.look(d).translucent;
 
 export function drawDisc(paint: Paint, round: Round, d: Disc, x = d.x, y = d.y): void {
   const { ctx, color } = paint, r = d.r, sq = 1 + (d.squash || 0) * 0.18;
@@ -71,7 +71,7 @@ export function drawDisc(paint: Paint, round: Round, d: Disc, x = d.x, y = d.y):
   ctx.save();
   ctx.translate(x, y);
   ctx.scale(sq, 2 - sq);
-  if (isGhosting(d)) ctx.globalAlpha = 0.5;
+  if (isTranslucent(d)) ctx.globalAlpha = 0.5;
   ctx.fillStyle = discFill(paint, d);
   circle(ctx, 0, 0, r);
   ctx.fill();

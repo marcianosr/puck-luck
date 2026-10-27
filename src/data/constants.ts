@@ -15,6 +15,8 @@ export const TICK_MS = 1000 / TICKS_PER_SECOND;
 
 export const PERFECT_BAND = { min: 0.7, max: 0.85 } as const;
 export const SWEEP_TICKS = 90;
+/** How close to the rolling striker a held finger sweeps. */
+export const SWEEP_RADIUS = 110;
 
 export const UPGRADE_COST = 5;
 export const REMOVE_COST = 3;

@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { MAXV } from '@/data/constants';
-import type { TracePoint } from '@/sim/types';
-import { curlOf, liveSpeed, readFlick } from './gestures';
+import { curlOf, liveSpeed, readFlick, type TracePoint } from './gestures';
 
 /** A swipe from (x, y) moving dx, dy per 10 ms step; `bow(i)` adds a sideways offset per point. */
 const swipe = (steps: number, dx: number, dy: number, bow: (i: number) => number = () => 0): TracePoint[] =>

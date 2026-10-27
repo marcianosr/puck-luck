@@ -2,17 +2,19 @@ import { W } from "@/data/constants";
 import { TARGET_COLORS } from "@/data/palette";
 import type { Modifiers } from "@/data/perks";
 import { formatNumber } from "@/lib/math";
-import { progressContract } from "./contracts";
 import { pop, shake, showBanner, spray } from "./effects";
-import type { Disc, Game, Run, Striker, Target } from "./types";
+import { record } from "./playLog";
+import type { Disc, Game, Run, Shot, Striker, Target } from "./types";
 
 const POINTS_PER_CHAIN = 10;
 const GOLD_MULT = 3;
-const PERFECT_MULT = 1.5;
+export const PERFECT_MULT = 1.5;
 const FULL_CLEAR_POINTS = 500;
 const SHATTER_POINTS = 100;
 const MIN_HIT_FORCE = 0.15;
 const CURL_SHOT_MIN_SPIN = 0.15;
+/** Every this many links, the chain lands a beat: a short freeze-frame and screen shake. */
+const CHAIN_BEAT = 10;
 
 export interface ChainState {
 	chain: number;
@@ -103,11 +105,11 @@ export function grownModifiers(mods: Modifiers, stats: GrowthStats): Modifiers {
 	};
 }
 
-export const currentChainValue = (game: Game): number =>
+export const currentChainValue = (game: Game, shot: Shot): number =>
 	chainValue(
 		{
-			chain: game.round.chain,
-			shotMult: game.round.shotMult,
+			chain: shot.chain,
+			shotMult: shot.chainMult,
 			inWeather: !!game.round.weather,
 		},
 		grownModifiers(game.run.mods, game.run),
@@ -123,12 +125,13 @@ export function award(
 ): void {
 	const { round, run } = game;
 	round.score += points;
-	round.shotPts += points;
 	run.total += points;
 	game.emit({ type: "score", bump: true });
 	pop(game, x, y, [...tags, `+${formatNumber(points)}`], big);
-	if (round.phase === "roll")
-		progressContract(game, "shot", round.shotPts, true);
+	if (round.shot) {
+		round.shot.points += points;
+		record(game, { type: "shotPoints", points: round.shot.points });
+	}
 	if (!round.quotaHit && round.score >= round.quota) {
 		round.quotaHit = true;
 		showBanner(game, {
@@ -153,16 +156,46 @@ export function touchTarget(game: Game, t: Target): void {
 		t: 1.8,
 	});
 	award(game, FULL_CLEAR_POINTS, W / 2, 150, ["Full Clear!"], true);
-	round.slowT = 30;
+	if (round.shot) round.shot.slowT = 30;
 	game.emit({ type: "buzz", pattern: [40, 40, 80] });
-	progressContract(game, "full");
+	record(game, { type: "fullClear" });
 }
 
 export function shatterTarget(game: Game, t: Target): void {
 	spray(game, t.x, t.y, 20, t.gold ? "gold" : TARGET_COLORS[t.color], 3);
 	award(game, SHATTER_POINTS, t.x, t.y, ["Shatter!"]);
-	progressContract(game, "shatter");
+	record(game, { type: "shatter" });
 	game.emit({ type: "buzz", pattern: 25 });
+}
+
+/** Scores one chain link from the chain value it is worth. */
+export type LinkScore = (chainValue: number) => {
+	points: number;
+	tags: string[];
+};
+
+/**
+ * Adds one link to the chain and scores it. Every cause of a link (hit, clash, bumper, boards)
+ * goes through here, so they all count toward the longest chain and land the same beat.
+ */
+export function addChainLink(
+	game: Game,
+	x: number,
+	y: number,
+	score: LinkScore,
+	big = false,
+): void {
+	const { round } = game, shot = round.shot;
+	if (!shot) return;
+	shot.chain++;
+	const { points, tags } = score(currentChainValue(game, shot));
+	award(game, points, x, y, tags, big);
+	record(game, { type: "link", chain: shot.chain });
+	round.fx.chainPulse = 1;
+	if (shot.chain % CHAIN_BEAT === 0) {
+		freeze(game, 3);
+		shake(game, 4);
+	}
 }
 
 const strikerOf = (a: Disc, b: Disc): Striker | null =>
@@ -178,13 +211,13 @@ export function hit(
 	force: number,
 	extraTags: string[] = [],
 ): void {
-	const { round, run } = game;
-	if (round.phase !== "roll" || force < MIN_HIT_FORCE) return;
-	round.chain++;
+	const { round, run } = game, shot = round.shot;
+	if (!shot || force < MIN_HIT_FORCE) return;
+	const link = shot.chain + 1;
 	const striker = strikerOf(a, b);
 	const clash = a.kind === "striker" && b.kind === "striker";
 	const prism =
-		!clash && round.prismN > 0 && round.chain % round.prismN === 0;
+		!clash && shot.clashEvery > 0 && link % shot.clashEvery === 0;
 	const bonus: HitBonuses = {
 		clash,
 		prism,
@@ -193,39 +226,34 @@ export function hit(
 			!!striker?.launched && Math.abs(striker.spin) > CURL_SHOT_MIN_SPIN,
 		gold:
 			(a.kind === "target" && a.gold) || (b.kind === "target" && b.gold),
-		perfect: round.perfectHits > 0,
-		shotMult: round.shotMult,
+		perfect: shot.perfectHits > 0,
+		shotMult: shot.chainMult,
 	};
-	const { points, tags } = scoreHit(
-		currentChainValue(game),
-		bonus,
-		grownModifiers(run.mods, run),
-		extraTags,
-	);
+	const mods = grownModifiers(run.mods, run);
 	const isClash = clash || prism;
-	if (isClash) {
-		run.clashes++;
-		progressContract(game, "clash");
-	}
+	if (isClash) record(game, { type: "clash" });
 	if (bonus.banked && striker) {
 		striker.banked = false;
-		progressContract(game, "bank");
+		record(game, { type: "bank" });
 	}
-	if (bonus.curled) progressContract(game, "curl");
-	if (bonus.perfect) round.perfectHits--;
-	award(game, points, x, y, tags, isClash);
+	if (bonus.curled) record(game, { type: "curl" });
+	if (bonus.perfect) shot.perfectHits--;
+	addChainLink(
+		game,
+		x,
+		y,
+		(base) => scoreHit(base, bonus, mods, extraTags),
+		isClash,
+	);
 
 	a.flash = b.flash = 1;
 	a.squash = b.squash = Math.min(1, force / 6);
-	run.maxChain = Math.max(run.maxChain, round.chain);
-	progressContract(game, "chain", round.chain, true);
-	round.fx.chainPulse = 1;
 
 	const targets = [a, b].filter((d) => d.kind === "target");
 	for (const t of targets) {
 		touchTarget(game, t);
 		if (t.maxHp <= 1) continue;
-		t.hp -= striker?.breaker ? 2 : 1;
+		t.hp -= striker?.build.breaker ? 2 : 1;
 		if (t.hp <= 0) t.dead = "shatter";
 		else spray(game, t.x, t.y, 8, "frost", 2);
 	}
@@ -241,14 +269,10 @@ export function hit(
 	if (isClash) {
 		freeze(game, 6);
 		shake(game, 9);
-		round.slowT = 24;
+		shot.slowT = 24;
 		game.emit({ type: "buzz", pattern: [25, 30, 45] });
 	} else {
 		game.emit({ type: "buzz", pattern: 8 });
-		if (round.chain % 10 === 0) {
-			freeze(game, 3);
-			shake(game, 4);
-		}
 	}
 }
 

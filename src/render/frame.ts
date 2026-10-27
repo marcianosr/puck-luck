@@ -1,19 +1,22 @@
-import { H, LAUNCH_Y, MAXV, PERFECT_BAND, W, ZONE_TOP } from '@/data/constants';
+import { H, LAUNCH_Y, MAXV, PERFECT_BAND, SWEEP_RADIUS, W, ZONE_TOP } from '@/data/constants';
 import { CURL_STYLE_LABEL } from '@/data/perks';
-import { ABILITY, strikerName } from '@/data/strikers';
+import { strikerName } from '@/data/strikers';
 import { curlOf, liveSpeed } from '@/input/gestures';
 import { clamp } from '@/lib/math';
 import { isInPerfectBand, sweepTicks } from '@/sim/actions';
 import { boomProgress, nudgeProgress, popProgress, pulseProgress } from '@/sim/effects';
 import { createStriker } from '@/sim/round';
+import { abilityOf } from '@/sim/strikers';
 import type { Game, Round } from '@/sim/types';
 import { clampAimX, clampAimY } from '@/input/aim';
+import type { PointerView } from '@/input/pointer';
 import { drawDisc, drawTrail } from './discs';
 import { circle, isDarkFloor, label, outlined, type Paint } from './paint';
 import { drawRink } from './rink';
 
 export interface FrameView {
   gain: number;
+  pointer: PointerView;
   seconds: number;
   /** Cosmetic jitter source for screen shake. */
   random: () => number;
@@ -99,12 +102,13 @@ function drawAim(paint: Paint, game: Game, view: FrameView): void {
   const card = round.hand[round.used];
   if (round.phase !== 'aim' || !card) return;
   const ghost = createStriker(card, 0, 0, { id: 0, mods: run.mods, rot: 0 });
-  if (!round.held) {
-    drawDisc(paint, round, ghost, round.aimX, LAUNCH_Y);
-    label(paint, `${strikerName(card)}  ·  flick ↑, swipe in a curve to curl`, clamp(round.aimX, 140, W - 140), LAUNCH_Y - ghost.r - 10, 12, ink, 'center', 0.65);
+  const { aimX, held } = view.pointer;
+  if (!held) {
+    drawDisc(paint, round, ghost, aimX, LAUNCH_Y);
+    label(paint, `${strikerName(card)}  ·  flick ↑, swipe in a curve to curl`, clamp(aimX, 140, W - 140), LAUNCH_Y - ghost.r - 10, 12, ink, 'center', 0.65);
     return;
   }
-  const { trail, x, y } = round.held, curl = curlOf(trail);
+  const { trail, x, y } = held, curl = curlOf(trail);
   ctx.strokeStyle = curl ? color('gold') : color('paddle');
   ctx.globalAlpha = 0.6;
   ctx.lineWidth = 3;
@@ -128,20 +132,21 @@ function drawAim(paint: Paint, game: Game, view: FrameView): void {
   }
 }
 
-function drawRollingControls(paint: Paint, game: Game): void {
-  const { ctx, color } = paint, { round, run } = game, a = round.active, ink = color(round.theme.ink);
-  if (round.phase !== 'roll' || !a || a.dead) return;
-  if (round.touch && round.sweepE > 0) {
-    ctx.strokeStyle = round.sweeping ? color('gold') : ink;
-    ctx.globalAlpha = round.sweeping ? 0.8 : 0.3;
+function drawRollingControls(paint: Paint, game: Game, pointer: PointerView): void {
+  const { ctx, color } = paint, { round, run } = game, shot = round.shot, ink = color(round.theme.ink);
+  if (!shot || shot.striker.dead) return;
+  const a = shot.striker;
+  if (pointer.touching && shot.sweepLeft > 0) {
+    ctx.strokeStyle = shot.sweeping ? color('gold') : ink;
+    ctx.globalAlpha = shot.sweeping ? 0.8 : 0.3;
     ctx.lineWidth = 2;
     ctx.setLineDash([5, 5]);
-    circle(ctx, a.x, a.y, 110);
+    circle(ctx, a.x, a.y, SWEEP_RADIUS);
     ctx.stroke();
     ctx.setLineDash([]);
     ctx.globalAlpha = 1;
   }
-  if (round.sweeping) {
+  if (shot.sweeping) {
     ctx.strokeStyle = color('gold');
     ctx.lineWidth = 3;
     ctx.lineCap = 'round';
@@ -152,9 +157,9 @@ function drawRollingControls(paint: Paint, game: Game): void {
       ctx.stroke();
     }
   }
-  const ability = ABILITY[a.type].name;
-  const tapHint = round.taps > 0 ? `Tap: ${ability}${round.taps > 1 ? ` ×${round.taps}` : ''}` : 'Ability used';
-  const nudgeHint = round.nudges > 0 ? 'Swipe: nudge' : 'Nudge used';
+  const ability = abilityOf(a.type).name;
+  const tapHint = shot.taps > 0 ? `Tap: ${ability}${shot.taps > 1 ? ` ×${shot.taps}` : ''}` : 'Ability used';
+  const nudgeHint = shot.nudges > 0 ? 'Swipe: nudge' : 'Nudge used';
   label(paint, `${tapHint}  ·  Hold near: sweep  ·  ${nudgeHint}`, W / 2, ZONE_TOP + 30, 12, ink, 'center', 0.7);
 
   const n = round.fx.nudge;
@@ -175,7 +180,7 @@ function drawRollingControls(paint: Paint, game: Game): void {
     ctx.globalAlpha = 1;
   }
 
-  const meter = Math.max(0, round.sweepE) / sweepTicks(run.mods);
+  const meter = Math.max(0, shot.sweepLeft) / sweepTicks(run.mods);
   ctx.fillStyle = ink;
   ctx.globalAlpha = 0.18;
   ctx.fillRect(W - 90, H - 40, 80, 6);
@@ -186,12 +191,12 @@ function drawRollingControls(paint: Paint, game: Game): void {
 }
 
 function drawLastShot(paint: Paint, game: Game): void {
-  const { round, run } = game, ink = paint.color(round.theme.ink);
-  if (round.phase !== 'roll' || !round.lastSpeed) return;
-  drawPower(paint, round.lastSpeed / MAXV, round.perfect, ink);
-  if (!round.lastSpin) return;
+  const { round, run } = game, shot = round.shot, ink = paint.color(round.theme.ink);
+  if (!shot?.launchSpeed) return;
+  drawPower(paint, shot.launchSpeed / MAXV, shot.perfect, ink);
+  if (!shot.launchSpin) return;
   const style = CURL_STYLE_LABEL[run.mods.curlStyle];
-  label(paint, `${style} ${round.lastSpin > 0 ? '→' : '←'} ${Math.round(Math.abs(round.lastSpin) * 100)}%`, 96, H - 34, 11, ink, 'left', 0.75);
+  label(paint, `${style} ${shot.launchSpin > 0 ? '→' : '←'} ${Math.round(Math.abs(shot.launchSpin) * 100)}%`, 96, H - 34, 11, ink, 'left', 0.75);
 }
 
 function drawBoom(paint: Paint, round: Round): void {
@@ -220,8 +225,8 @@ function drawPulse(paint: Paint, round: Round): void {
   }
 }
 
-function drawPaddle(paint: Paint, round: Round): void {
-  const { ctx, color } = paint, px = round.held ? round.held.x : round.aimX;
+function drawPaddle(paint: Paint, round: Round, pointer: PointerView): void {
+  const { ctx, color } = paint, px = pointer.held ? pointer.held.x : pointer.aimX;
   ctx.fillStyle = color(round.theme.ink);
   ctx.globalAlpha = 0.18;
   ctx.fillRect(8, H - 15, W - 16, 4);
@@ -245,9 +250,10 @@ function drawTexts(paint: Paint, round: Round): void {
     ctx.globalAlpha = 1;
     if (round.slowK > 0.6) label(paint, 'SLOW-MO', 12, bh - 7, 10, color('gold'), 'left');
   }
-  if (round.phase === 'roll' && round.chain > 0) {
+  const chain = round.shot?.chain ?? 0;
+  if (chain > 0) {
     ctx.textAlign = 'left';
-    outlined(paint, `${round.chain} chain`, 12, 40 + round.slowK * 14, 22 + fx.chainPulse * 10, round.chain >= 10 ? color('gold') : color('frost'));
+    outlined(paint, `${chain} chain`, 12, 40 + round.slowK * 14, 22 + fx.chainPulse * 10, chain >= 10 ? color('gold') : color('frost'));
   }
   ctx.textAlign = 'center';
   for (const p of fx.pops) {
@@ -300,10 +306,10 @@ export function drawFrame(paint: Paint, fog: CanvasRenderingContext2D, game: Gam
   ctx.globalAlpha = 1;
   if (round.weather?.id === 'fog') drawFog(paint, fog, round);
   drawWeather(paint, round);
-  drawPaddle(paint, round);
+  drawPaddle(paint, round, view.pointer);
   drawAim(paint, game, view);
   drawPulse(paint, round);
-  drawRollingControls(paint, game);
+  drawRollingControls(paint, game, view.pointer);
   drawLastShot(paint, game);
   drawTexts(paint, round);
   ctx.restore();

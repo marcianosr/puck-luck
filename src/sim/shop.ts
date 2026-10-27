@@ -4,7 +4,7 @@ import { isUpgraded, STRIKER_IDS, STRIKERS, upgradeOf, baseOf, type Card, type S
 import { WEATHER_CLEAR_COINS } from '@/data/weather';
 import { pick, type Rng } from '@/lib/rng';
 import { actIndex, addPerk } from './run';
-import type { Round, Run } from './types';
+import type { Game, Round, Run } from './types';
 
 const OFFERS_PER_SHELF = 3;
 const ROUND_COINS = 4;
@@ -21,6 +21,8 @@ export interface Offer<Id> {
 export type DeckEditMode = 'upgrade' | 'remove' | null;
 
 export interface Shop {
+  /** What the cleared round paid out on the way in. */
+  earnings: Earning[];
   rerollCost: number;
   mode: DeckEditMode;
   strikers: Offer<StrikerId>[];
@@ -58,8 +60,8 @@ export function rollOffers(rng: Rng, run: Run): Pick<Shop, 'strikers' | 'perks'>
   };
 }
 
-export function openShop(rng: Rng, run: Run): Shop {
-  return { rerollCost: FIRST_REROLL_COST, mode: null, ...rollOffers(rng, run) };
+export function openShop(rng: Rng, run: Run, earnings: Earning[] = []): Shop {
+  return { earnings, rerollCost: FIRST_REROLL_COST, mode: null, ...rollOffers(rng, run) };
 }
 
 /** Pays out a cleared round and returns the breakdown. Interest is counted on coins held before the payout. */
@@ -127,5 +129,50 @@ export function removeCard(run: Run, card: Card): boolean {
   if (idx < 0 || !canRemoveAny(run)) return false;
   run.deck.splice(idx, 1);
   run.coins -= REMOVE_COST;
+  return true;
+}
+
+export type Shelf = 'striker' | 'perk';
+
+function shopChanged(game: Game, buzz: number | number[] | null, perks = false): void {
+  game.emit({ type: 'coins' });
+  if (perks) game.emit({ type: 'perks' });
+  game.emit({ type: 'shop' });
+  if (buzz) game.emit({ type: 'buzz', pattern: buzz });
+}
+
+/** Buys the offer at `index` on a shelf of the open shop. */
+export function buyOffer(game: Game, shelf: Shelf, index: number): boolean {
+  const { shop, run } = game;
+  if (!shop) return false;
+  const striker = shelf === 'striker' ? shop.strikers[index] : undefined;
+  const perk = shelf === 'perk' ? shop.perks[index] : undefined;
+  const bought = (!!striker && buyStriker(run, striker)) || (!!perk && buyPerk(run, perk));
+  if (bought) shopChanged(game, 15, !!perk);
+  return bought;
+}
+
+export function rerollShop(game: Game): boolean {
+  if (!game.shop || !reroll(game.rng, game.run, game.shop)) return false;
+  shopChanged(game, null);
+  return true;
+}
+
+/** Switches the deck into upgrade or remove mode, or back out when it is already in that mode. */
+export function toggleDeckMode(game: Game, mode: Exclude<DeckEditMode, null>): void {
+  if (!game.shop) return;
+  game.shop.mode = game.shop.mode === mode ? null : mode;
+  game.emit({ type: 'shop' });
+}
+
+/** Applies the current deck mode to one card, then leaves the mode. */
+export function editDeck(game: Game, card: Card): boolean {
+  const { shop, run } = game;
+  if (!shop?.mode) return false;
+  const upgrading = shop.mode === 'upgrade';
+  const edited = upgrading ? upgradeCard(run, card) : removeCard(run, card);
+  if (!edited) return false;
+  shop.mode = null;
+  shopChanged(game, upgrading ? [15, 20, 15] : 15);
   return true;
 }

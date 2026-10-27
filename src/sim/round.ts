@@ -7,6 +7,7 @@ import { WEATHER, WEATHER_CHANCE, WEATHER_IDS } from '@/data/weather';
 import { formatNumber } from '@/lib/math';
 import { between, pick, shuffle, type Rng } from '@/lib/rng';
 import { layoutOf, rollContracts } from './contracts';
+import { behaviourOf, buildOf } from './strikers';
 import { emptyEffects } from './effects';
 import { actIndex, drawHand, quotaFor, themeFor } from './run';
 import type { ActiveWeather, Game, GameCore, Point, Round, Striker, Target, Zone } from './types';
@@ -24,11 +25,6 @@ export function createTarget(id: number, x: number, y: number, rng: Rng): Target
   };
 }
 
-export function strikerRadius(card: Card | 'shard', mods: Modifiers, scale = 1): number {
-  const r = R * mods.strikerScale * scale;
-  return card !== 'shard' && baseOf(card) === 'heavy' ? r * 1.12 : r;
-}
-
 interface StrikerOptions {
   id: number;
   mods: Modifiers;
@@ -39,15 +35,12 @@ interface StrikerOptions {
 export function createStriker(card: Card | 'shard', x: number, y: number, { id, mods, rot, scale = 1 }: StrikerOptions): Striker {
   const type = card === 'shard' ? 'shard' : baseOf(card);
   const up = card !== 'shard' && isUpgraded(card);
-  const r = strikerRadius(card, mods, scale);
+  const build = buildOf(type, up);
+  const r = R * mods.strikerScale * scale * build.radiusMult;
   return {
-    id, x, y, vx: 0, vy: 0, r, m: r * r * (type === 'heavy' ? (up ? 3.5 : 2.5) : 1), kind: 'striker', type, up,
+    id, x, y, vx: 0, vy: 0, r, m: r * r * build.massMult, kind: 'striker', type, up,
     spin: 0, rot, flash: 0, squash: 0, trail: [], age: 0, banked: false, dead: null, pocket: null, launched: false,
-    curlMul: type === 'basic' && up ? 1.8 : 1,
-    breaker: type === 'heavy' && up,
-    ghost: type === 'ghost' ? { phasesLeft: up ? 4 : 2, through: new Set() } : null,
-    bomb: type === 'bomb' ? { armed: true, blastR: up ? 170 : 125, blastK: up ? 13 : 10, blastPts: up ? 150 : 50 } : null,
-    magnet: type === 'magnet' ? { pullR: up ? 160 : 100, pullK: up ? 0.22 : 0.14 } : null,
+    build, behaviour: behaviourOf(type, up),
   };
 }
 
@@ -91,10 +84,8 @@ function blankRound(game: GameCore): Round {
   const { run } = game, theme = themeFor(run, run.round), quota = quotaFor(run.round, run.kit);
   return {
     theme, formation: '', discs: [], pockets: [], bumpers: [], patches: [], wells: [], weather: null,
-    hand: [], used: 0, score: run.carry, quota, quotaHit: run.carry >= quota, chain: 0, shotPts: 0,
-    phase: 'aim', aimX: W / 2, held: null, touch: null, active: null, sweepE: 0, sweeping: false, taps: 0, nudges: 0,
-    perfect: false, perfectHits: 0, shotMult: 1, prismN: 0, lastSpeed: 0, lastSpin: 0,
-    freeze: 0, slowT: 0, slowLock: 0, slowUsed: false, slowK: 0, frPenalty: 0,
+    hand: [], used: 0, score: run.carry, quota, quotaHit: run.carry >= quota,
+    phase: 'aim', shot: null, freeze: 0, slowK: 0, frPenalty: 0,
     targetTotal: 0, touched: 0, fullClear: false, windUsed: false, sunkCoins: 0,
     contracts: [], fx: emptyEffects(),
   };

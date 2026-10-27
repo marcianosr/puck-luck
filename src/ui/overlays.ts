@@ -29,7 +29,7 @@ export function setupKitPicker(onPick: (kit: Kit) => void): { show: () => void }
     show() {
       $('kitList').innerHTML = KITS.map((k, i) => {
         const dots = k.deck.map(c => `<span class="sd${isUpgraded(c) ? ' up' : ''}" data-t="${baseOf(c)}"></span>`).join('');
-        return `<button class="offer" data-i="${i}"><strong>${k.name} <span class="dots">${dots}</span></strong><span class="desc">${k.desc}</span><span class="tag">Deck of ${k.deck.length} · you draw ${HAND} at random each round</span></button>`;
+        return `<button class="offer kit" data-i="${i}"><strong>${k.name} <span class="dots">${dots}</span></strong><span class="desc">${k.desc}</span><span class="tag">Deck of ${k.deck.length} · you draw ${HAND} at random each round</span></button>`;
       }).join('');
       hideOverlays();
       $('kitOver').hidden = false;

@@ -556,6 +556,9 @@ button.ghost.on {
 	color: var(--frost);
 	grid-column: 1;
 }
+.offer.kit .tag {
+	grid-column: 1 / -1;
+}
 .offer .price {
 	grid-column: 2;
 	grid-row: 1 / span 3;

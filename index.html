@@ -57,8 +57,11 @@
     <div class="overlay" id="kitOver" hidden>
       <div class="card">
         <h2>Pick a starter kit</h2>
-        <p>Your kit sets your deck, coins and any starting perk. Each round you draw 3 strikers from your deck.</p>
-        <p><b style="color:var(--frost)">New:</b> while a shot rolls, hold your finger near it to <b style="color:var(--frost)">sweep</b> (it glides further and curls less), tap once to use the striker's <b style="color:var(--frost)">ability</b>, or swipe once to <b style="color:var(--frost)">nudge</b> it. Release a flick in the gold band of the power meter for a <b style="color:var(--frost)">Perfect</b> bonus. Tap any chip or striker dot for details.</p>
+        <p>Your kit is your starting deck. Each round you draw 3 strikers from it.</p>
+        <details class="howto">
+          <summary>How to play</summary>
+          <p>While a shot rolls, hold your finger near it to <b>sweep</b> (it glides further and curls less), tap once to use the striker's <b>ability</b>, or swipe once to <b>nudge</b> it. Release a flick in the gold band of the power meter for a <b>Perfect</b> bonus. Tap any chip or striker dot for details.</p>
+        </details>
         <div class="offers" id="kitList"></div>
       </div>
     </div>
@@ -72,15 +75,17 @@
         <div class="offers" id="offStrikers"></div>
         <h3>Perks</h3>
         <div class="offers" id="offPerks"></div>
+        <button class="ghost" id="reroll">Reroll</button>
+        <h3 id="deckTitle">Your deck</h3>
+        <div class="deck" id="deckList"></div>
         <div class="svc">
-          <button class="ghost" id="reroll">Reroll</button>
           <button class="ghost" id="upgradeBtn">Upgrade</button>
           <button class="ghost" id="removeBtn">Remove</button>
         </div>
-        <h3 id="deckTitle">Your deck</h3>
-        <div class="deck" id="deckList"></div>
-        <p id="nextInfo"></p>
-        <button id="nextRound">Next round</button>
+        <div class="cardfoot">
+          <p id="nextInfo"></p>
+          <button id="nextRound">Next round</button>
+        </div>
       </div>
     </div>
 

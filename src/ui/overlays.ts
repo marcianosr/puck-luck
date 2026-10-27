@@ -1,4 +1,3 @@
-import { HAND } from '@/data/constants';
 import { KITS, type Kit } from '@/data/kits';
 import { baseOf, isUpgraded } from '@/data/strikers';
 import { formatNumber } from '@/lib/math';
@@ -6,6 +5,7 @@ import { load, save } from '@/lib/storage';
 import { isNewBest, type BestRun } from '@/sim/game';
 import type { Game } from '@/sim/types';
 import { $, $button, closest } from './dom';
+import { coinHtml } from './hud';
 
 const BEST_KEY = 'chainSmashDeckBest';
 
@@ -29,11 +29,12 @@ export function setupKitPicker(onPick: (kit: Kit) => void): { show: () => void }
     show() {
       $('kitList').innerHTML = KITS.map((k, i) => {
         const dots = k.deck.map(c => `<span class="sd${isUpgraded(c) ? ' up' : ''}" data-t="${baseOf(c)}"></span>`).join('');
-        return `<button class="offer kit" data-i="${i}"><strong>${k.name} <span class="dots">${dots}</span></strong><span class="desc">${k.desc}</span><span class="tag">Deck of ${k.deck.length} · you draw ${HAND} at random each round</span></button>`;
+        return `<button class="offer kit" data-i="${i}"><strong>${k.name} <span class="dots">${dots}</span></strong><span class="desc">${k.desc}</span><span class="price" aria-label="${k.coins} starting coins">${coinHtml}${k.coins}</span></button>`;
       }).join('');
       hideOverlays();
       $('kitOver').hidden = false;
-      $('kitList').querySelector('button')?.focus();
+      // Without preventScroll, focusing the first kit scrolls the card and hides its title.
+      $('kitList').querySelector('button')?.focus({ preventScroll: true });
     },
   };
 }

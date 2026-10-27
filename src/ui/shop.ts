@@ -25,14 +25,14 @@ function renderOffers(game: Game, shop: Shop): void {
     const s = STRIKERS[o.id], price = strikerPrice(o.id);
     return `<button class="offer ${s.rarity}${o.sold ? ' sold' : ''}" data-kind="striker" data-i="${i}" ${o.sold || run.coins < price ? 'disabled' : ''}>
       <strong><span class="sd" data-t="${o.id}"></span>${s.name}</strong>
-      <span class="tag">${s.rarity} striker · upgrades to ${s.up}</span><span class="desc">${describeStriker(o.id, false, mods)}</span>
+      <span class="tag">${s.rarity} · upgrades to ${s.up}</span><span class="desc">${describeStriker(o.id, false, mods)}</span>
       <span class="price">${o.sold ? 'Added' : coinHtml + price}</span></button>`;
   }).join('') || '<p>Sold out.</p>';
   $('offPerks').innerHTML = shop.perks.map((o, i) => {
     const p = perkById(o.id), price = perkPrice(o.id);
     const replaces = p.group && PERKS.find(q => q.group === p.group && run.perks.has(q.id));
     return `<button class="offer ${p.rarity}${o.sold ? ' sold' : ''}" data-kind="perk" data-i="${i}" ${o.sold || run.coins < price ? 'disabled' : ''}>
-      <strong>${p.name}</strong><span class="tag">${p.rarity} perk${replaces ? ` · replaces ${replaces.name}` : ''}</span><span class="desc">${p.desc}</span>
+      <strong>${p.name}</strong><span class="tag">${p.rarity}${replaces ? ` · replaces ${replaces.name}` : ''}</span><span class="desc">${p.desc}</span>
       <span class="price">${o.sold ? 'Owned' : coinHtml + price}</span></button>`;
   }).join('') || '<p>You own every perk.</p>';
 }

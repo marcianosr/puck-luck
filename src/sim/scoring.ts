@@ -142,7 +142,7 @@ export function award(
 			sub: "Everything else is bonus coins",
 			t: 1.6,
 		});
-		game.emit({ type: "buzz", pattern: [30, 40, 30] });
+		game.emit({ type: "feel", cue: "quota" });
 	}
 }
 
@@ -160,7 +160,7 @@ export function touchTarget(game: Game, t: Target): void {
 	});
 	award(game, FULL_CLEAR_POINTS, W / 2, 150, ["Full Clear!"], true);
 	if (round.shot) round.shot.slowT = 30;
-	game.emit({ type: "buzz", pattern: [40, 40, 80] });
+	game.emit({ type: "feel", cue: "fullClear" });
 	record(game, { type: "fullClear" });
 }
 
@@ -168,7 +168,7 @@ export function shatterTarget(game: Game, t: Target): void {
 	spray(game, t.x, t.y, 20, t.gold ? "gold" : TARGET_COLORS[t.color], 3);
 	award(game, SHATTER_POINTS, t.x, t.y, ["Shatter!"]);
 	record(game, { type: "shatter" });
-	game.emit({ type: "buzz", pattern: 25 });
+	game.emit({ type: "feel", cue: "shatter" });
 }
 
 /** Scores one chain link from the chain value it is worth. */
@@ -274,10 +274,8 @@ export function hit(
 		freeze(game, 6);
 		shake(game, 9);
 		shot.slowT = 24;
-		game.emit({ type: "buzz", pattern: [25, 30, 45] });
-	} else {
-		game.emit({ type: "buzz", pattern: 8 });
 	}
+	game.emit({ type: "feel", cue: isClash ? "clash" : "hit", chain: shot.chain });
 }
 
 /** Hit-stop: pauses physics for a few ticks. Skipped with reduced motion. */

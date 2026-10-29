@@ -134,11 +134,11 @@ export function removeCard(run: Run, card: Card): boolean {
 
 export type Shelf = 'striker' | 'perk';
 
-function shopChanged(game: Game, buzz: number | number[] | null, perks = false): void {
+function shopChanged(game: Game, cue: 'buy' | 'upgrade' | null, perks = false): void {
   game.emit({ type: 'coins' });
   if (perks) game.emit({ type: 'perks' });
   game.emit({ type: 'shop' });
-  if (buzz) game.emit({ type: 'buzz', pattern: buzz });
+  if (cue) game.emit({ type: 'feel', cue });
 }
 
 /** Buys the offer at `index` on a shelf of the open shop. */
@@ -148,7 +148,7 @@ export function buyOffer(game: Game, shelf: Shelf, index: number): boolean {
   const striker = shelf === 'striker' ? shop.strikers[index] : undefined;
   const perk = shelf === 'perk' ? shop.perks[index] : undefined;
   const bought = (!!striker && buyStriker(run, striker)) || (!!perk && buyPerk(run, perk));
-  if (bought) shopChanged(game, 15, !!perk);
+  if (bought) shopChanged(game, 'buy', !!perk);
   return bought;
 }
 
@@ -173,6 +173,6 @@ export function editDeck(game: Game, card: Card): boolean {
   const edited = upgrading ? upgradeCard(run, card) : removeCard(run, card);
   if (!edited) return false;
   shop.mode = null;
-  shopChanged(game, upgrading ? [15, 20, 15] : 15);
+  shopChanged(game, upgrading ? 'upgrade' : 'buy');
   return true;
 }

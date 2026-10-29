@@ -25,3 +25,6 @@ _Avoid_: "shot" for the gesture reading.
 **Run phase** — where the run is: kit pick → playing → shop → over. Owned by the sim; the UI only shows it.
 
 **Settle** — paying out a cleared round (round bonus, carry-over) as it ends, before the shop opens.
+
+**Feel cue** — a moment the player should feel (a clash, a sink, a bought perk). The sim names the moment; the UI decides how it sounds and vibrates.
+_Avoid_: buzz, sfx event.

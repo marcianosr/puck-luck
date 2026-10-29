@@ -67,7 +67,7 @@ describe('round flow', () => {
     game.run.coins = 99;
     events.length = 0;
     expect(buyOffer(game, 'striker', 0)).toBe(true);
-    expect(events.map(e => e.type)).toEqual(expect.arrayContaining(['coins', 'shop', 'buzz']));
+    expect(events.map(e => e.type)).toEqual(expect.arrayContaining(['coins', 'shop', 'feel']));
   });
 
   it('replays two rounds and the shop between them exactly from the same seed', () => {

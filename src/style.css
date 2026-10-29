@@ -1,3 +1,23 @@
+/* Self-hosted so no visitor data goes to Google (GDPR). Latin subsets only; all text is English. SIL OFL 1.1, see assets/fonts/LICENSE.md. */
+@font-face {
+	font-family: "Lilita One";
+	font-weight: 400;
+	font-display: swap;
+	src: url("./assets/fonts/lilita-one.woff2") format("woff2");
+}
+@font-face {
+	font-family: "Nunito";
+	/* One variable font file covers both weights the game uses. */
+	font-weight: 600 800;
+	font-display: swap;
+	src: url("./assets/fonts/nunito.woff2") format("woff2");
+}
+@font-face {
+	font-family: "DM Mono";
+	font-weight: 500;
+	font-display: swap;
+	src: url("./assets/fonts/dm-mono-500.woff2") format("woff2");
+}
 :root {
 	box-sizing: border-box;
 	padding-top: env(safe-area-inset-top, 0px);
@@ -80,6 +100,42 @@ body {
 }
 .field {
 	position: relative;
+}
+.hint {
+	position: absolute;
+	left: 50%;
+	z-index: 2;
+	width: max-content;
+	max-width: min(300px, calc(100% - 32px));
+	transform: translateX(-50%);
+	padding: 8px 14px;
+	border-radius: 14px;
+	background: var(--panel);
+	box-shadow: inset 0 0 0 2px var(--gold), 0 8px 20px rgba(0, 0, 0, 0.35);
+	color: var(--frost);
+	font-size: 13px;
+	font-weight: 800;
+	text-align: center;
+	pointer-events: none;
+	animation: hint-in 0.25s ease-out;
+}
+/* Just above the launch zone, which starts 150 of the rink's 680 units from the bottom. */
+.hint[data-at="bottom"] {
+	bottom: 24%;
+}
+.hint[data-at="top"] {
+	top: 22%;
+}
+@keyframes hint-in {
+	from {
+		opacity: 0;
+		transform: translateX(-50%) translateY(6px);
+	}
+}
+@media (prefers-reduced-motion: reduce) {
+	.hint {
+		animation: none;
+	}
 }
 .hud {
 	position: absolute;

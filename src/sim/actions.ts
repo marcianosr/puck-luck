@@ -52,11 +52,11 @@ export function launch(game: Game, flick: Flick): Striker | null {
   if (perfect) {
     pop(game, d.x, d.y - 24, ['Perfect!'], true);
     spray(game, d.x, d.y, 14, 'gold', 2.5);
-    game.emit({ type: 'buzz', pattern: [10, 20, 10] });
+    game.emit({ type: 'feel', cue: 'perfect' });
     record(game, { type: 'perfect' });
   }
   game.emit({ type: 'hand' });
-  game.emit({ type: 'buzz', pattern: 6 });
+  game.emit({ type: 'feel', cue: 'launch' });
   return d;
 }
 
@@ -76,7 +76,7 @@ export function nudge(game: Game, dx: number, dy: number): void {
   game.round.fx.nudge = { x: d.x, y: d.y, a: Math.atan2(dy, dx), t: 0 };
   spray(game, d.x, d.y, 10, 'rare', 2);
   pop(game, d.x, d.y - 18, ['Nudge!']);
-  game.emit({ type: 'buzz', pattern: 12 });
+  game.emit({ type: 'feel', cue: 'nudge' });
 }
 
 export function useAbility(game: Game): void {
@@ -87,5 +87,5 @@ export function useAbility(game: Game): void {
   resolveDead(game);
   shot.taps--;
   pop(game, d.x, d.y - 18, [`${abilityOf(d.type).name}!`]);
-  game.emit({ type: 'buzz', pattern: [15, 15] });
+  game.emit({ type: 'feel', cue: 'ability' });
 }

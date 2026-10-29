@@ -87,7 +87,7 @@ function endRound(game: Game): void {
   }
   game.shop = openShop(game.rng, run, settleRound(run, round));
   game.emit({ type: 'coins' });
-  game.emit({ type: 'buzz', pattern: [40, 60, 40] });
+  game.emit({ type: 'feel', cue: 'roundCleared' });
   setRunPhase(game, 'shop');
 }
 
@@ -107,7 +107,7 @@ export function endShot(game: Game): void {
     round.phase = 'aim';
     game.emit({ type: 'hand' });
     showBanner(game, { text: 'Second Wind!', sub: 'One more striker', t: 1.6 });
-    game.emit({ type: 'buzz', pattern: [20, 20, 20] });
+    game.emit({ type: 'feel', cue: 'secondWind' });
     return;
   }
   round.phase = 'done';

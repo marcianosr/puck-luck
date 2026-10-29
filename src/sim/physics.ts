@@ -297,5 +297,5 @@ function sink(game: Game, d: Disc, p: Zone): void {
   game.emit({ type: 'coins' });
   award(game, points, p.x, p.y, [lava ? 'Melted!' : 'Sunk!', `+${coins} coin${coins > 1 ? 's' : ''}`], true);
   record(game, { type: 'sink' });
-  game.emit({ type: 'buzz', pattern: 30 });
+  game.emit({ type: 'feel', cue: 'sink' });
 }

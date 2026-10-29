@@ -1,4 +1,5 @@
 import "./style.css";
+import { createSfx } from "@/audio/sfx";
 import { TICK_MS, W, H } from "@/data/constants";
 import { attachPointer } from "@/input/pointer";
 import { randomSeed } from "@/lib/rng";
@@ -19,6 +20,8 @@ import {
 	renderRoundHeader,
 	renderScore,
 } from "@/ui/hud";
+import { createFeel } from "@/ui/feel";
+import { createCoach } from "@/ui/hints";
 import { hideInfo, isInfoOpen, showInfo } from "@/ui/info";
 import { hideOverlays, setupKitPicker, showRunOver } from "@/ui/overlays";
 import { setupRunSheet } from "@/ui/runSheet";
@@ -36,9 +39,15 @@ const fixedSeed = (() => {
 const seedForRun = () => fixedSeed ?? randomSeed();
 
 const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
-const settings = setupSettings();
+const sfx = createSfx(() => settings.sound());
+const settings = setupSettings(() => sfx.play("buy", 0));
+const feel = createFeel(settings.buzz, sfx);
+// Browsers keep audio locked until a user gesture; every press is a chance to unlock or resume it.
+for (const type of ["pointerdown", "keydown"])
+	addEventListener(type, () => sfx.unlock(), { capture: true });
 const runSheet = setupRunSheet(() => game);
 const shop = createShopView(() => game);
+const coach = createCoach();
 
 function showRunPhase(): void {
 	if (game.runPhase === "shop") shop.open();
@@ -59,8 +68,8 @@ function onGameEvent(event: GameEvent): void {
 			return renderHand(game);
 		case "perks":
 			return renderPerks(game);
-		case "buzz":
-			return settings.buzz(event.pattern);
+		case "feel":
+			return feel(event);
 		case "round":
 			hideOverlays();
 			renderRoundHeader(game);
@@ -80,7 +89,10 @@ function onGameEvent(event: GameEvent): void {
 const game: Game = createGame({
 	seed: seedForRun(),
 	reduceMotion,
-	emit: (event) => onGameEvent(event),
+	emit: (event) => {
+		onGameEvent(event);
+		coach.update(game);
+	},
 });
 
 const kitPicker = setupKitPicker((kit) => startRun(game, kit, seedForRun()));

@@ -39,7 +39,7 @@ export function progressBounties(game: Game, play: Play): void {
     run.tokens += tokens;
     game.emit({ type: 'coins' });
     showBanner(game, { text: 'Bounty done!', sub: `${k.def.text(k.goal)} · +${coins} coins${tokens ? ' · +1 upgrade token' : ''}`, t: 1.8 });
-    game.emit({ type: 'buzz', pattern: [20, 30, 20] });
+    game.emit({ type: 'feel', cue: 'bounty' });
   }
   if (changed) game.emit({ type: 'bounties' });
 }

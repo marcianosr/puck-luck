@@ -244,8 +244,19 @@ export type GameEvent =
   | { type: 'perks' }
   | { type: 'round' }
   | { type: 'shop' }
-  | { type: 'buzz'; pattern: number | number[] }
+  | { type: 'feel'; cue: Exclude<FeelCue, ChainCue> }
+  /** `chain` is the shot's chain length after this link, so feedback can build with it. */
+  | { type: 'feel'; cue: ChainCue; chain: number }
   | { type: 'runPhase' };
+
+/** A moment the player should feel: the UI decides how it sounds and vibrates. */
+export type FeelCue =
+  | 'launch' | 'perfect' | 'nudge' | 'ability'
+  | 'hit' | 'clash' | 'shatter' | 'sink' | 'boom'
+  | 'quota' | 'fullClear' | 'bounty' | 'secondWind' | 'roundCleared'
+  | 'buy' | 'upgrade';
+
+type ChainCue = 'hit' | 'clash';
 
 /** Where the run is. The sim moves it along; the UI only shows it. */
 export type RunPhase = 'kitPick' | 'playing' | 'shop' | 'over';

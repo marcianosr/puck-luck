@@ -13,7 +13,7 @@ function explode(game: Game, self: Striker, { radius, force, points }: ReturnTyp
   spray(game, self.x, self.y, 18, 'frost', 3);
   shake(game, 12);
   freeze(game, 5);
-  game.emit({ type: 'buzz', pattern: [30, 20, 50] });
+  game.emit({ type: 'feel', cue: 'boom' });
   game.round.fx.boom = { x: self.x, y: self.y, t: 0, r: radius };
   for (const d of game.round.discs) {
     if (d === self) continue;

@@ -20,6 +20,18 @@ function updateRunStats(run: Run, play: Play): void {
       return;
     case 'sink':
       run.sunk++;
+      return;
+    case 'curl':
+      run.curls++;
+      return;
+    case 'bank':
+      run.banks++;
+      return;
+    case 'perfect':
+      run.perfects++;
+      return;
+    case 'shatter':
+      run.shatters++;
   }
 }
 

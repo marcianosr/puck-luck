@@ -1,22 +1,25 @@
 import { HAND } from '@/data/constants';
 import type { Kit } from '@/data/kits';
 import { modifiersFor, perkById, PERKS, type PerkId } from '@/data/perks';
-import type { Card } from '@/data/strikers';
+import { STRIKER_IDS, type Card } from '@/data/strikers';
 import { FIRST_THEME, LATER_THEMES, THEMES, type Theme } from '@/data/themes';
 import { shuffle, type Rng } from '@/lib/rng';
-import type { Run } from './types';
+import type { ContentPool, Run } from './types';
 
 const ROUNDS_PER_ACT = 3;
 const BASE_QUOTA = 1500;
 const QUOTA_GROWTH = 1.55;
 const MIN_HAND = 2;
 
-export function createRun(kit: Kit, rng: Rng): Run {
+/** Everything in the game; what headless play and tests use when no profile limits it. */
+export const FULL_POOL: ContentPool = { strikers: new Set(STRIKER_IDS), perks: new Set(PERKS.map(p => p.id)) };
+
+export function createRun(kit: Kit, rng: Rng, pool: ContentPool = FULL_POOL): Run {
   const perks = new Set<PerkId>(kit.perks);
   return {
     kit, round: 1, total: 0, perks, mods: modifiersFor(perks), deck: [...kit.deck], coins: kit.coins, tokens: 0, carry: 0,
     lastFormation: '', handDelta: kit.handDelta ?? 0, themes: [FIRST_THEME, ...shuffle(rng, LATER_THEMES)],
-    maxChain: 0, clashes: 0, sunk: 0, bestShot: 0, bountiesDone: 0,
+    maxChain: 0, clashes: 0, sunk: 0, bestShot: 0, bountiesDone: 0, curls: 0, banks: 0, perfects: 0, shatters: 0, pool,
   };
 }
 

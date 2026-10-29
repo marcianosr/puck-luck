@@ -71,6 +71,7 @@
           <summary>How to play</summary>
           <p>While a shot rolls, hold your finger near it to <b>sweep</b> (it glides further and curls less), tap once to use the striker's <b>ability</b>, or swipe once to <b>nudge</b> it. Release a flick in the gold band of the power meter for a <b>Perfect</b> bonus. Tap any chip or striker dot for details.</p>
         </details>
+        <button class="ghost" id="kitChecklist">Checklist</button>
         <div class="offers" id="kitList"></div>
       </div>
     </div>
@@ -98,6 +99,16 @@
       </div>
     </div>
 
+    <div class="overlay" id="checkOver" hidden>
+      <div class="card">
+        <h2>Checklist</h2>
+        <p id="checkCount"></p>
+        <div class="checkgrid" id="checkGrid"></div>
+        <div class="checkdetail" id="checkDetail" role="status"></div>
+        <button id="checkClose">Close</button>
+      </div>
+    </div>
+
     <div class="overlay" id="over" hidden>
       <div class="card">
         <h2>Run over</h2>
@@ -112,6 +123,7 @@
           <span>Best shot</span><span id="stShot">0</span>
           <span>Best run</span><span id="stBest">—</span>
         </div>
+        <div class="unlocks" id="overUnlocks" hidden></div>
         <button id="again">New run</button>
       </div>
     </div>

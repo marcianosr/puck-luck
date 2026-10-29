@@ -3,7 +3,7 @@ import { DEFAULT_KIT } from '@/data/kits';
 import { createRng } from '@/lib/rng';
 import { createGame } from './game';
 import { addPerk, createRun } from './run';
-import { buyPerk, removeCard, settleRound, upgradeCard } from './shop';
+import { buyPerk, removeCard, rollOffers, settleRound, upgradeCard } from './shop';
 import type { Round } from './types';
 
 const freshRun = (coins = 0) => ({ ...createRun(DEFAULT_KIT, createRng(1)), coins });
@@ -69,5 +69,23 @@ describe('removeCard', () => {
     const run = { ...freshRun(10), deck: ['basic' as const, 'basic' as const, 'heavy' as const] };
     expect(removeCard(run, 'heavy')).toBe(false);
     expect(run.deck).toHaveLength(3);
+  });
+});
+
+describe('rollOffers', () => {
+  it('only offers strikers and perks from the run\'s content pool', () => {
+    const run = { ...freshRun(), pool: { strikers: new Set(['heavy'] as const), perks: new Set(['slick', 'hot'] as const) } };
+    for (let seed = 1; seed <= 20; seed++) {
+      const offers = rollOffers(createRng(seed), run);
+      expect(offers.strikers.every(o => o.id === 'heavy')).toBe(true);
+      expect(offers.perks.every(o => o.id === 'slick' || o.id === 'hot')).toBe(true);
+    }
+  });
+
+  it('leaves a shelf short rather than offering locked content', () => {
+    const run = { ...freshRun(), pool: { strikers: new Set(['heavy'] as const), perks: new Set<never>() } };
+    const offers = rollOffers(createRng(1), run);
+    expect(offers.strikers).toHaveLength(1);
+    expect(offers.perks).toHaveLength(0);
   });
 });

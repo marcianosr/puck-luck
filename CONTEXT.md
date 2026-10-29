@@ -28,3 +28,9 @@ _Avoid_: "shot" for the gesture reading.
 
 **Feel cue** — a moment the player should feel (a clash, a sink, a bought perk). The sim names the moment; the UI decides how it sounds and vibrates.
 _Avoid_: buzz, sfx event.
+
+**Checklist** — the 6×6 grid of lifetime goals (Kirby Air Ride style). Clearing a tile unlocks its reward and reveals its neighbours' goals. Checked when a run ends.
+
+**Profile** — everything that carries over between runs: lifetime stats and cleared Checklist tiles. Lives outside the sim, in `src/meta`.
+
+**Content pool** — the strikers and perks the shop may offer in a run. Built from the profile; headless play uses the full pool.

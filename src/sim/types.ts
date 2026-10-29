@@ -3,7 +3,7 @@ import type { Point } from '@/data/formations';
 import type { Kit } from '@/data/kits';
 import type { ColorKey, TargetColor } from '@/data/palette';
 import type { Modifiers, PerkId } from '@/data/perks';
-import type { Card, StrikerType } from '@/data/strikers';
+import type { Card, StrikerId, StrikerType } from '@/data/strikers';
 import type { Theme, ThemeId } from '@/data/themes';
 import type { WeatherId } from '@/data/weather';
 import type { Rng } from '@/lib/rng';
@@ -234,6 +234,17 @@ export interface Run {
   sunk: number;
   bestShot: number;
   bountiesDone: number;
+  curls: number;
+  banks: number;
+  perfects: number;
+  shatters: number;
+  /** What the shop may offer this run; meta progress unlocks more of it. */
+  pool: ContentPool;
+}
+
+export interface ContentPool {
+  strikers: ReadonlySet<StrikerId>;
+  perks: ReadonlySet<PerkId>;
 }
 
 export type GameEvent =

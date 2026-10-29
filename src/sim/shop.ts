@@ -52,11 +52,11 @@ function rollShelf<Id>(rng: Rng, round: number, candidates: (rarity: Rarity, tak
 }
 
 export function rollOffers(rng: Rng, run: Run): Pick<Shop, 'strikers' | 'perks'> {
-  const buyable = STRIKER_IDS.filter(id => id !== 'basic');
+  const buyable = STRIKER_IDS.filter(id => id !== 'basic' && run.pool.strikers.has(id));
   return {
     strikers: rollShelf<StrikerId>(rng, run.round, (rarity, taken) => buyable.filter(id => STRIKERS[id].rarity === rarity && !taken.includes(id))),
     perks: rollShelf<PerkId>(rng, run.round, (rarity, taken) =>
-      PERKS.filter(p => p.rarity === rarity && !run.perks.has(p.id) && !taken.includes(p.id)).map(p => p.id)),
+      PERKS.filter(p => p.rarity === rarity && run.pool.perks.has(p.id) && !run.perks.has(p.id) && !taken.includes(p.id)).map(p => p.id)),
   };
 }
 

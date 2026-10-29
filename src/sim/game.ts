@@ -4,7 +4,7 @@ import { showBanner } from './effects';
 import { buildRound, startRound } from './round';
 import { createRun } from './run';
 import { openShop, settleRound } from './shop';
-import type { Game, GameCore, GameEvent, Run, RunPhase } from './types';
+import type { ContentPool, Game, GameCore, GameEvent, Run, RunPhase } from './types';
 
 interface GameOptions {
   seed: number;
@@ -46,10 +46,10 @@ export function parkForKitPick(game: Game): void {
 }
 
 /** Starts a fresh run. Reseeding here means the same seed and kit always deal the same run. */
-export function startRun(game: Game, kit: Kit, seed: number): void {
+export function startRun(game: Game, kit: Kit, seed: number, pool?: ContentPool): void {
   game.seed = seed;
   game.rng = createRng(seed);
-  game.run = createRun(kit, game.rng);
+  game.run = createRun(kit, game.rng, pool);
   game.shop = null;
   game.emit({ type: 'perks' });
   game.emit({ type: 'coins' });

@@ -20,6 +20,8 @@ import {
 	renderRoundHeader,
 	renderScore,
 } from "@/ui/hud";
+import { createProgress } from "@/meta/progress";
+import { setupChecklist } from "@/ui/checklist";
 import { createFeel } from "@/ui/feel";
 import { createCoach } from "@/ui/hints";
 import { hideInfo, isInfoOpen, showInfo } from "@/ui/info";
@@ -48,10 +50,16 @@ for (const type of ["pointerdown", "keydown"])
 const runSheet = setupRunSheet(() => game);
 const shop = createShopView(() => game);
 const coach = createCoach();
+const progress = createProgress();
+const checklist = setupChecklist(progress);
+
+/** Rounds behind the player: in the shop the current round is already cleared. */
+const roundsCleared = (g: Game) => (g.runPhase === "shop" ? g.run.round : g.run.round - 1);
+const finishRun = () => progress.finishRun(game.run, roundsCleared(game));
 
 function showRunPhase(): void {
 	if (game.runPhase === "shop") shop.open();
-	if (game.runPhase === "over") showRunOver(game);
+	if (game.runPhase === "over") showRunOver(game, finishRun());
 }
 
 function onGameEvent(event: GameEvent): void {
@@ -95,8 +103,15 @@ const game: Game = createGame({
 	},
 });
 
-const kitPicker = setupKitPicker((kit) => startRun(game, kit, seedForRun()));
+const kitPicker = setupKitPicker(
+	(kit) => startRun(game, kit, seedForRun(), progress.unlocks().pool),
+	progress,
+	() => checklist.show(),
+);
 const newRun = () => {
+	// An abandoned run still counts toward the Checklist once a striker has been launched; a finished one was counted when it ended.
+	const inProgress = game.runPhase === "playing" || game.runPhase === "shop";
+	if (inProgress && (game.run.round > 1 || game.round.used > 0)) finishRun();
 	parkForKitPick(game);
 	kitPicker.show();
 };

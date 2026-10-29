@@ -778,3 +778,71 @@ button.ghost.on {
 		animation: none;
 	}
 }
+
+.offer.kit.locked {
+	opacity: 0.55;
+}
+.offer.kit.locked .desc {
+	color: var(--muted);
+	font-weight: 800;
+}
+.checkgrid {
+	display: grid;
+	grid-template-columns: repeat(6, 1fr);
+	gap: 4px;
+}
+.tile {
+	aspect-ratio: 1;
+	padding: 2px;
+	border-radius: 8px;
+	font-family: var(--body);
+	font-size: 10px;
+	font-weight: 800;
+	line-height: 1.1;
+	letter-spacing: 0;
+	text-transform: none;
+	overflow-wrap: anywhere;
+	box-shadow: none;
+}
+.tile.hidden {
+	background: var(--night);
+	color: var(--muted);
+	font-size: 16px;
+}
+.tile.open {
+	background: var(--panel-2);
+	color: var(--frost);
+	box-shadow: inset 0 0 0 2px var(--muted);
+}
+.tile.done {
+	background: var(--gold);
+	color: var(--night);
+}
+.tile.done.trophy {
+	background: var(--gold-deep);
+	color: var(--frost);
+	font-size: 16px;
+}
+.checkdetail {
+	min-height: 58px;
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	text-align: center;
+	font-size: 13px;
+	color: var(--muted);
+}
+.checkdetail strong {
+	color: var(--frost);
+	font-size: 14px;
+}
+.unlocks {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	font-size: 13px;
+	color: var(--muted);
+}
+.unlocks b {
+	color: var(--frost);
+}
